@@ -73,7 +73,7 @@ Any error in the renderer is thrown inside the plugin and fails the build.
 | `##WELCOME.md##` | `content/<lang>/WELCOME.md` as HTML (exact, case-sensitive file name) |
 | `##SERVICES.md:items##` | that file split at `### ` headings, one `<li>` per section |
 | `##menu_home##` | the HTML-escaped value of `menu_home` in `content/<lang>/site.yml` (lowercase is reserved for `site.yml`) |
-| `##LANG##`, `##HEAD_LINKS##`, `##LANG_SWITCH##` | built-ins: language code; canonical, `hreflang` and `og:url` tags; EN \| DE switch |
+| `##LANG##`, `##HEAD_LINKS##`, `##LANG_SWITCH##` | built-ins: language code; canonical, `hreflang` and `og:url` tags; the items of the language menu (globe icon) |\| DE switch |
 
 ### Edit markers
 

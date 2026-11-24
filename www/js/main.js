@@ -15,6 +15,20 @@ if (toggle && menu) {
   });
 }
 
+// Language menu (<details>): close it on a click outside or on Escape.
+const langMenu = document.querySelector('[data-lang-menu]');
+
+if (langMenu) {
+  document.addEventListener('click', (event) => {
+    if (langMenu.open && !langMenu.contains(event.target)) langMenu.open = false;
+  });
+  langMenu.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !langMenu.open) return;
+    langMenu.open = false;
+    langMenu.querySelector('summary').focus();
+  });
+}
+
 // Mark the menu link of the section in view with aria-current.
 const links = [...document.querySelectorAll('[data-menu] a[href^="#"]')];
 const sections = links.map((link) => document.querySelector(link.getAttribute('href'))).filter(Boolean);

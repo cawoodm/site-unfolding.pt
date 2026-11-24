@@ -60,7 +60,7 @@ test('built-ins: LANG, HEAD_LINKS, LANG_SWITCH', () => {
       '<link rel="alternate" hreflang="de" href="https://unfolding.pt/de/">',
       '<meta property="og:url" content="https://unfolding.pt/de/">',
     ].join('\n  '),
-    '<a href="../en/" hreflang="en" lang="en" class="hover:underline">EN</a><span aria-hidden="true">|</span><span aria-current="true" class="font-bold">DE</span>',
+    '<li><a href="../en/" hreflang="en" lang="en" class="block px-4 py-2 hover:bg-mist/40">English</a></li><li><span aria-current="true" lang="de" class="block px-4 py-2 font-bold">Deutsch</span></li>',
   ].join('|'));
 });
 

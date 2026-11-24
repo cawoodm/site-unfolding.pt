@@ -4,7 +4,7 @@
 //   ##NAME.md##        content/<lang>/NAME.md as HTML (exact, case-sensitive file name)
 //   ##NAME.md:items##  the .md file split at "### " headings, one <li> per section
 //   ##lower_key##      the HTML-escaped string <lower_key> from content/<lang>/site.yml
-//   ##UPPER_NAME##     built-ins, computed per language: LANG, HEAD_LINKS, LANG_SWITCH
+//   ##UPPER_NAME##     built-ins, computed per language: LANG, HEAD_LINKS, LANG_SWITCH (the language menu items)
 // With markers on (renderLanguage), editable output is wrapped for the cmsfree editor (cms.js):
 //   <!--cms:NAME.md-->…<!--/cms-->, <!--cms:NAME.md:items-->…<!--/cms-->, <!--cms:lower_key-->…<!--/cms-->
 // Strings get no marker inside a tag (attribute values) or in <title>, <textarea>, <script>, <style>. Built-ins never do.
@@ -18,6 +18,7 @@ const ROOT = resolve(import.meta.dirname, '..');
 export const CONTENT_DIR = join(ROOT, 'content');
 export const TEMPLATE = join(ROOT, 'www', 'index.html');
 export const LANGUAGES = ['en', 'de'];
+const LANGUAGE_NAMES = { en: 'English', de: 'Deutsch' };
 const SITE_URL = 'https://unfolding.pt';
 
 // Language redirect page (dist/index.html and "/" in dev). It has no assets of its own.
@@ -72,13 +73,14 @@ export function renderPage(template, { lang, languages, blocks, strings, fallbac
       ...languages.map((l) => `<link rel="alternate" hreflang="${l}" href="${SITE_URL}/${l}/">`),
       `<meta property="og:url" content="${SITE_URL}/${lang}/">`,
     ].join('\n  '),
+    // One <li> per language for the language menu; each name is in its own language.
     LANG_SWITCH: () =>
       languages
         .map((l) =>
           l === lang
-            ? `<span aria-current="true" class="font-bold">${l.toUpperCase()}</span>`
-            : `<a href="../${l}/" hreflang="${l}" lang="${l}" class="hover:underline">${l.toUpperCase()}</a>`)
-        .join('<span aria-hidden="true">|</span>'),
+            ? `<li><span aria-current="true" lang="${l}" class="block px-4 py-2 font-bold">${LANGUAGE_NAMES[l]}</span></li>`
+            : `<li><a href="../${l}/" hreflang="${l}" lang="${l}" class="block px-4 py-2 hover:bg-mist/40">${LANGUAGE_NAMES[l]}</a></li>`)
+        .join(''),
   };
   const usedBlocks = new Set();
   const usedStrings = new Set();
