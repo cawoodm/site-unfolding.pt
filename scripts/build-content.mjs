@@ -23,12 +23,13 @@ const escapeHtml = (value) =>
   String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 export function renderItems(markdown) {
-  return markdown
+  const parts = markdown
     .split(/^(?=### )/m)
     .map((part) => part.trim())
-    .filter(Boolean)
-    .map((part) => `<li>${marked.parse(part).trim()}</li>`)
-    .join('\n');
+    .filter(Boolean);
+  if (parts.length && !parts[0].startsWith('### ')) throw new Error('##…:items## block must start with a "### " heading, found text before it');
+  // The <div> keeps the heading and all paragraphs together as one flex child.
+  return parts.map((part) => `<li><div>${marked.parse(part).trim()}</div></li>`).join('\n');
 }
 
 export function renderPage(template, { lang, languages, blocks, strings }) {
@@ -73,13 +74,22 @@ export function renderPage(template, { lang, languages, blocks, strings }) {
   return html;
 }
 
+function loadStrings(path) {
+  const strings = parseYaml(readFileSync(path, 'utf8')) ?? {};
+  if (typeof strings !== 'object' || Array.isArray(strings)) throw new Error(`${path}: must be a list of "key: text" lines`);
+  for (const [key, value] of Object.entries(strings)) {
+    if (typeof value !== 'string' || !value.trim()) throw new Error(`${path}: "${key}" must be text; put it in double quotes if it contains ":" or "#"`);
+  }
+  return strings;
+}
+
 export function loadLanguage(dir) {
   const blocks = {};
   let strings = {};
   for (const file of readdirSync(dir).sort()) {
     const path = join(dir, file);
     if (file.endsWith('.md')) blocks[file.slice(0, -3)] = readFileSync(path, 'utf8');
-    else if (file === 'site.yml') strings = parseYaml(readFileSync(path, 'utf8')) ?? {};
+    else if (file === 'site.yml') strings = loadStrings(path);
     else throw new Error(`${path}: only .md files and site.yml are allowed`);
   }
   return { blocks, strings };

@@ -10,8 +10,14 @@ Markdown basics:
 - Empty line = new paragraph.
 - `**bold**`, `*italic*`, `[link text](https://example.com)`.
 - In `welcome.md`, `## Heading` starts a new heading.
-- In `services.md`, each `### Title` starts a new numbered item.
+- In `services.md`, each `### Title` starts a new numbered item. An item may have several paragraphs. The layout is designed for 9–10 items.
 - In `footer-contact.md`, a `\` at the end of a line forces a line break.
+
+`site.yml`:
+
+- Each line is `key: text`.
+- If a text contains `:` or `#`, wrap it in double quotes, e.g. `title: "Unfolding Portugal: Algarve"`.
+- Never leave a text empty.
 
 Change a file on GitHub (pencil icon → "Commit changes" to `main`) and the site rebuilds and publishes within a few minutes. If the build fails, the old site stays online and the failed run under the repository's *Actions* tab shows why.
 

@@ -1,5 +1,5 @@
 import { existsSync, readdirSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { isAbsolute, join, relative, resolve } from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 import { buildContent, CONTENT_DIR, TEMPLATE } from './scripts/build-content.mjs';
@@ -41,7 +41,8 @@ const content = {
     server.watcher.add([CONTENT_DIR, TEMPLATE]);
     server.watcher.on('all', (event, file) => {
       const path = resolve(file);
-      if (!path.startsWith(CONTENT_DIR) && path !== TEMPLATE) return;
+      const fromContent = relative(CONTENT_DIR, path);
+      if ((fromContent.startsWith('..') || isAbsolute(fromContent)) && path !== TEMPLATE) return;
       try {
         buildContent();
         server.ws.send({ type: 'full-reload' });

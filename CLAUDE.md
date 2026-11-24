@@ -16,7 +16,6 @@ The original Sitejet export is the content source and stays local in `old/` (git
 - Styling with Tailwind; site theme colors are primary `#4e6e54`, secondary `#d27d6b`, background `#f8f4e3`, text `#3d3d3d`; fonts Lato (body) and Playfair Display (headings), self-hosted.
 - JS is vanilla only (menu toggle, active-section highlight). No jQuery or other runtime libraries.
 - Layout changes go into `templates/home.html` (both languages); text changes into `content/en/` and `content/de/`. The build fails on a placeholder without content or content without a placeholder. Rendered Markdown has no classes; style it through the `.md-*` component classes in `site.css`.
-- `tests/fixtures/home-*.txt` snapshot the visible home page text. After an intended text change, regenerate them (see `tests/text.mjs`) in the same commit.
 
 ## Commands
 
@@ -24,7 +23,8 @@ The original Sitejet export is the content source and stays local in `old/` (git
 npm install
 npm run dev        # Vite dev server on http://localhost:8000, www/ as root
 npm run build      # build www/ into dist/
-npm test           # build, then node:test checks in tests/site.test.js
+npm test           # build, then run tests/site.test.js and tests/content.test.js
+npm run content    # render content/ into www/<lang>/index.html without building
 node --test --test-name-pattern="resolves" tests/site.test.js   # single test (needs a build)
 ```
 
@@ -34,6 +34,9 @@ node --test --test-name-pattern="resolves" tests/site.test.js   # single test (n
 
 - `www/css/site.css`: Tailwind import, self-hosted `@font-face` rules, theme tokens (`primary`, `secondary`, `sand`, `ink`, `mist`, `font-sans`, `font-serif`), the `.legal` text styles and the hero `.rise` animation.
 - `www/js/main.js`: mobile menu (`data-menu-toggle` / `data-menu`) and `aria-current` on the menu link of the visible section.
+- `templates/home.html`: the single home-page template. Placeholders `##KEY##`, `##KEY:items##`, built-ins `##LANG##`, `##CANONICAL##`, `##ALTERNATES##`, `##LANG_SWITCH##`.
+- `content/<lang>/`: Markdown blocks and `site.yml` strings; `content/README.md` is the editor guide.
+- `scripts/build-content.mjs`: the renderer; also called from `vite.config.js` at startup and on change in dev. `site.css` uses `@source` for `templates/` and `scripts/` because the generated pages are git-ignored.
 - `www/images/`, `www/fonts/`: processed by Vite (hashed into `dist/assets/`). `www/public/` is copied as-is to the site root (`sitemap.xml`, `robots.txt`).
 - All internal links and asset references are relative (never start with `/`), so the site works on `unfolding.pt` and under `cawoodm.github.io/site-unfolding.pt/`. `npm test` enforces this and checks that every reference resolves.
 

@@ -96,10 +96,12 @@
 
   /* One numbered grid item per "### " section of services.md. */
   .md-services { counter-reset: service; }
-  .md-services > li { @apply grid grid-cols-[2.5rem_1fr] gap-x-5; counter-increment: service; }
+  .md-services > li { @apply flex gap-5; counter-increment: service; }
   .md-services > li::before {
-    @apply row-span-2 flex size-10 items-center justify-center rounded bg-mist/40 font-serif text-lg text-primary;
+    @apply flex size-10 shrink-0 items-center justify-center rounded bg-mist/40 font-serif text-lg text-primary;
     content: counter(service);
+    /* Empty alt text keeps the number out of the accessibility tree where supported. */
+    content: counter(service) / "";
   }
   .md-services h3 { @apply mb-1 text-sm uppercase tracking-[0.2em] text-secondary; }
 
