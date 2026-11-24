@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Static website for **unfolding.pt** ("Unfolding Portugal", a personal retreat in the Algarve), hosted on GitHub Pages from `cawoodm/site-unfolding.pt`. The site is being rebuilt as plain static HTML with Tailwind CSS and vanilla JS, without the Sitejet builder or its libraries. The spec is `docs/CONCEPT.md`; the implementation plan is in `docs/plans/`.
+Static website for **unfolding.pt** ("Unfolding Portugal", a personal retreat in the Algarve), hosted on GitHub Pages from `cawoodm/site-unfolding.pt`. The site is being rebuilt as plain static HTML with Tailwind CSS and vanilla JS, without the Sitejet builder or its libraries. The spec is `docs/CONCEPT.md`. Plans and working notes live locally in `tmp/plans/` (git-ignored).
 
 The original Sitejet export is the content source and stays local in `old/` (git-ignored, not published).
 
