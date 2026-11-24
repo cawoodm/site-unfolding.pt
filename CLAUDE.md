@@ -10,7 +10,7 @@ The original Sitejet export is the content source and stays local in `old/` (git
 
 ## Target site
 
-- Bilingual: English (`www/en/`) and German (`www/de/`). Each page lives in its own folder as `index.html`: home, legal notice / Impressum, privacy / Datenschutz. `www/index.html` is a language chooser.
+- Bilingual: English (`www/en/`) and German (`www/de/`). Each page lives in its own folder as `index.html`: home, legal notice / Impressum, privacy / Datenschutz. `www/index.html` redirects at once: to `de/` if the browser ranks German above English in `navigator.languages`, otherwise to `en/` (also without JS); its EN/DE links are only a fallback.
 - No server-side code and no PHP. No contact form: contact is WhatsApp and email links only.
 - No backend, no cookies, no analytics. The privacy policy must say so; keep it accurate when adding anything that loads third-party content or collects data.
 - Styling with Tailwind; site theme colors are primary `#4e6e54`, secondary `#d27d6b`, background `#f8f4e3`, text `#3d3d3d`; fonts Lato (body) and Playfair Display (headings), self-hosted.

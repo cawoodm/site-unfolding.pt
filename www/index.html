@@ -3,8 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="refresh" content="10; url=en/">
   <title>Unfolding Portugal</title>
+  <script>
+    // Go to German if the browser ranks German above English, otherwise to English.
+    const preferred = (navigator.languages || [navigator.language || ''])
+      .map((lang) => lang.toLowerCase().slice(0, 2))
+      .find((lang) => lang === 'de' || lang === 'en');
+    location.replace(preferred === 'de' ? 'de/' : 'en/');
+  </script>
+  <noscript><meta http-equiv="refresh" content="0; url=en/"></noscript>
+  <link rel="alternate" hreflang="en" href="https://unfolding.pt/en/">
+  <link rel="alternate" hreflang="de" href="https://unfolding.pt/de/">
+  <link rel="alternate" hreflang="x-default" href="https://unfolding.pt/en/">
   <link rel="icon" type="image/webp" href="images/favicon.webp">
   <link rel="stylesheet" href="css/site.css">
 </head>
