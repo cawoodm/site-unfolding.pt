@@ -1,4 +1,4 @@
-## Welcome to my Unfolding Portugal
+## Welcome to Unfolding Portugal
 
 This project is not a conventional retreat. It is a place to live and simply be, born from our own everyday lives and our wish to share calm, clarity and authenticity with others.
 
