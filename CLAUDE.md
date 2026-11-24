@@ -4,34 +4,40 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Static export of the **unfolding.pt** website ("Unfolding Portugal", a personal retreat in the Algarve), built with the Sitejet website builder. All content lives in `old/`. Vite is used only as a local static dev server; there is no build step, tests, linter, or git repository.
+Static website for **unfolding.pt** ("Unfolding Portugal", a personal retreat in the Algarve), hosted on GitHub Pages from `cawoodm/site-unfolding.pt`. The site is being rebuilt as plain static HTML with Tailwind CSS and vanilla JS, without the Sitejet builder or its libraries. The spec is `docs/CONCEPT.md`; the implementation plan is in `docs/plans/`.
 
-Content is bilingual: English (`old/en/`) and German (`old/de/`). Each page is a single generated `index.html` in its own folder (`en/`, `en/subpage/`, `en/privacy/`, `en/legal-notice/`, `de/`, `de/datenschutz/`, `de/impressum/`). `old/sitemap.xml` lists the public URLs.
+The original Sitejet export is the content source and stays local in `old/` (git-ignored, not published).
 
-## Running locally
+## Target site
+
+- Bilingual: English (`www/en/`) and German (`www/de/`). Each page lives in its own folder as `index.html`: home, legal notice / Impressum, privacy / Datenschutz. `www/index.html` is a language chooser.
+- No server-side code and no PHP. No contact form: contact is WhatsApp and email links only.
+- No backend, no cookies, no analytics. The privacy policy must say so; keep it accurate when adding anything that loads third-party content or collects data.
+- Styling with Tailwind; site theme colors are primary `#4e6e54`, secondary `#d27d6b`, background `#f8f4e3`, text `#3d3d3d`; fonts Lato (body) and Playfair Display (headings), self-hosted.
+- JS is vanilla only (menu toggle, active-section highlight). No jQuery or other runtime libraries.
+- EN and DE pages are separate files. Apply content and layout changes to both.
+
+## Commands
 
 ```
 npm install
-npm run dev        # Vite on http://localhost:8000, serving old/ as the site root
+npm run dev        # Vite dev server on http://localhost:8000, www/ as root
+npm run build      # build www/ into dist/
+npm test           # build, then node:test checks in tests/site.test.js
+node --test --test-name-pattern="resolves" tests/site.test.js   # single test (needs a build)
 ```
 
-`vite.config.js` sets `root: 'old'`, `appType: 'mpa'` (no SPA fallback) and a small middleware that 301-redirects folder URLs without a trailing slash (`/en` → `/en/`), because the pages link that way. Vite does not run PHP, so `api.php` (forms) does not work there. For forms, use `php -S localhost:8000 -t old`.
+`vite.config.js` builds every `index.html` under `www/` as a page, runs Tailwind via `@tailwindcss/vite`, and uses `base: './'` so assets are referenced relatively. It also redirects folder URLs without a trailing slash (`/en` to `/en/`) in dev, like GitHub Pages does.
 
-`old/index.html` is a static landing page with EN | DE links that redirects to `/en/` after 10 s (meta refresh). On a PHP host, `old/index.php` does an `Accept-Language` redirect instead; which one `/` serves depends on the server's directory-index order.
+## Structure
 
-## Architecture
+- `www/css/site.css`: Tailwind import, self-hosted `@font-face` rules, theme tokens (`primary`, `secondary`, `sand`, `ink`, `mist`, `font-sans`, `font-serif`), the `.legal` text styles and the hero `.rise` animation.
+- `www/js/main.js`: mobile menu (`data-menu-toggle` / `data-menu`) and `aria-current` on the menu link of the visible section.
+- `www/images/`, `www/fonts/`: processed by Vite (hashed into `dist/assets/`). `www/public/` is copied as-is to the site root (`sitemap.xml`, `robots.txt`).
+- All internal links and asset references are relative (never start with `/`), so the site works on `unfolding.pt` and under `cawoodm.github.io/site-unfolding.pt/`. `npm test` enforces this and checks that every reference resolves.
 
-- `old/index.php` — PHP root entry point. Reads `Accept-Language` and sends a 302 to `/de/` or `/en/` (default `en`).
-- `old/api.php` — Sitejet API proxy (must stay PHP 7.1 compatible). The pages set `webcard.apiHost = location.host + '/api.php'`, so all builder API calls go through it. It handles contact-form submissions (email, CSV, webhook, Cloudflare Turnstile captcha) and forwards the rest to `https://api.sitehub.io`, and `/images` requests to `https://inter-cdn.com`. It is vendor code; avoid editing it.
-- `old/webcard/` — Sitejet runtime (`app.bundle.*.js`, `app.min.*.css`, chunks, slick slider). Vendor code, minified.
-- `old/css/custom.*.css` and `old/js/custom.*.js` — site-level custom styles and the "Menu V2" preset JS (jQuery: menu toggle, smooth scroll, sticky header). The numeric suffix is a cache-busting timestamp referenced from every HTML page; if you rename a file, update all references.
-- `old/g/` — self-hosted Google Fonts (Lato, Playfair Display) served via `fonts.css`.
-- `old/images/<size>/<id>/<name>` — responsive image variants. `<size>` is the width (48, 576, 976, 1024, 1920 …), sometimes with a crop suffix (`1024_600x599_0_100`). The same `<id>` appears under several sizes; pages pick variants via inline `@media` rules and `srcset`.
-- `old/bundles/flag-icon-css/` — flag SVGs for the language switcher.
+## Deployment
 
-## Editing pages
+`.github/workflows/pages.yml` runs `npm ci` and `npm test`, then deploys `dist/` to GitHub Pages on every push to `main` (also runnable manually). It has a `build` job that uploads the Pages artifact and a separate `deploy` job; keep them split, because `deploy-pages` cannot find an artifact uploaded in the same job. Live preview: https://cawoodm.github.io/site-unfolding.pt/. The plan moves the domain `unfolding.pt` to GitHub Pages at the end (`www/public/CNAME` plus DNS change).
 
-- HTML is generated, minified onto few lines, and full of element IDs like `#ed-4042029659`. Page-specific styles sit in an inline `<style>` block in `<head>` keyed by those IDs. Edit text in place; keep IDs and class names intact because the runtime and CSS depend on them.
-- EN and DE pages are separate copies. A content or layout change usually has to be applied to both languages.
-- Contact details (WhatsApp, phone, email, Instagram, Facebook) are hard-coded in each page.
-- The English home page links to `/legal-notice` and `/privacy` (root-relative, no `/en/` prefix), while the files live at `/en/legal-notice/` and `/en/privacy/`. Check these links when touching navigation.
+Commits use English messages and no AI attribution.

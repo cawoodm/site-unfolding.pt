@@ -1,12 +1,16 @@
 {
-  "name": "unfolding-pt",
+  "name": "site-unfolding-pt",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "preview": "vite preview"
+    "build": "vite build",
+    "preview": "vite preview --port 8000",
+    "test": "vite build && node --test tests/site.test.js"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.5",
+    "tailwindcss": "^4.3.5",
     "vite": "^7.0.0"
   }
 }

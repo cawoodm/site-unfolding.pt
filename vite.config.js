@@ -1,11 +1,21 @@
-import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, readdirSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
-const root = resolve(import.meta.dirname, 'old');
+const root = resolve(import.meta.dirname, 'www');
 
-// The pages link to folders without a trailing slash (/en, /de/impressum).
-// Redirect those to /en/ so Vite serves the folder's index.html.
+// Every index.html under www/ (except public/) is a page of the multi-page build.
+function pages(dir) {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) return entry.name === 'public' ? [] : pages(path);
+    return entry.name === 'index.html' ? [path] : [];
+  });
+}
+
+// Pages link to folders (/en/legal-notice/). Redirect folder URLs without a
+// trailing slash to the slash form, like GitHub Pages does.
 const trailingSlash = {
   name: 'trailing-slash',
   configureServer(server) {
@@ -20,10 +30,17 @@ const trailingSlash = {
   },
 };
 
-// Serve the static Sitejet export in old/ as the site root.
 export default defineConfig({
   root,
+  // Relative asset URLs, so the build works on a custom domain and under
+  // cawoodm.github.io/site-unfolding.pt/.
+  base: './',
   appType: 'mpa',
   server: { port: 8000 },
-  plugins: [trailingSlash],
+  build: {
+    outDir: resolve(import.meta.dirname, 'dist'),
+    emptyOutDir: true,
+    rollupOptions: { input: pages(root) },
+  },
+  plugins: [tailwindcss(), trailingSlash],
 });
