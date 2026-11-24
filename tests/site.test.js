@@ -40,12 +40,8 @@ function resolves(fromFile, ref) {
 test('all pages are built', () => {
   const pages = html.map((file) => relative(DIST, file).replaceAll('\\', '/')).sort();
   assert.deepEqual(pages, [
-    'de/datenschutz/index.html',
-    'de/impressum/index.html',
     'de/index.html',
     'en/index.html',
-    'en/legal-notice/index.html',
-    'en/privacy/index.html',
     'index.html',
   ]);
 });
@@ -70,11 +66,9 @@ test('no root-absolute references (site must work under a sub-path)', () => {
   assert.deepEqual(absolute, []);
 });
 
-// The home pages are generated and git-ignored, so Tailwind only sees the
-// template's classes through @source in site.css.
-test('built CSS includes utilities used only in templates/home.html', () => {
+test('built CSS includes utilities used only in the template and the dialog class', () => {
   const styles = css.map((file) => readFileSync(file, 'utf8')).join('\n');
-  for (const selector of ['.min-h-\\[85vh\\]', '.md\\:grid-flow-col', '.md\\:grid-rows-5', '.aspect-square']) {
+  for (const selector of ['.min-h-\\[85vh\\]', '.md\\:grid-flow-col', '.md\\:grid-rows-5', '.aspect-square', '.legal-dialog']) {
     assert.ok(styles.includes(selector), `missing ${selector}`);
   }
 });
@@ -87,4 +81,19 @@ test('no Sitejet leftovers or third-party scripts', () => {
       assert.doesNotMatch(m[1], /^(?:https?:)?\/\//, `${relative(DIST, file)} loads ${m[1]}`);
     }
   }
+});
+
+test('each language page has the legal notice and privacy dialogs with content', () => {
+  for (const lang of ['en', 'de']) {
+    const text = readFileSync(join(DIST, lang, 'index.html'), 'utf8');
+    for (const id of ['legal-notice', 'privacy']) {
+      const m = text.match(new RegExp(`<dialog id="${id}"[^>]*>([\\s\\S]*?)</dialog>`));
+      assert.ok(m, `${lang}: missing dialog #${id}`);
+      assert.match(m[1].replace(/<[^>]*>/g, '').trim(), /(?:\w+\W+){5}/, `${lang}: dialog #${id} is empty`);
+    }
+  }
+});
+
+test('no placeholder is left in any built page', () => {
+  for (const file of html) assert.doesNotMatch(readFileSync(file, 'utf8'), /##[^#\s]+##/, relative(DIST, file));
 });

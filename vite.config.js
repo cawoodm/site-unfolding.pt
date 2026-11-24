@@ -1,55 +1,79 @@
-import { existsSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
-import { buildContent, CONTENT_DIR, TEMPLATE } from './scripts/build-content.mjs';
-
-// Render content/ into www/<lang>/index.html before the page list is collected.
-buildContent();
+import { CONTENT_DIR, LANGUAGES, REDIRECT_HTML, TEMPLATE, renderLanguage } from './scripts/build-content.mjs';
 
 const root = resolve(import.meta.dirname, 'www');
+const outDir = resolve(import.meta.dirname, 'dist');
 
-// Every index.html under www/ (except public/) is a page of the multi-page build.
-function pages(dir) {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const path = join(dir, entry.name);
-    if (entry.isDirectory()) return entry.name === 'public' ? [] : pages(path);
-    return entry.name === 'index.html' ? [path] : [];
-  });
-}
+// www/index.html is the one template. In dev it is rendered per request; in the
+// build it is rendered once per language after Vite has hashed its assets.
+const singlePageDev = {
+  name: 'single-page-dev',
+  apply: 'serve',
 
-// Pages link to folders (/en/legal-notice/). Redirect folder URLs without a
-// trailing slash to the slash form, like GitHub Pages does.
-const trailingSlash = {
-  name: 'trailing-slash',
+  // Dev: serve "/" as the redirect page and "/<lang>/" as the rendered template.
+  // Registered directly, so it runs before Vite's own middleware.
   configureServer(server) {
-    server.middlewares.use((req, res, next) => {
+    server.middlewares.use(async (req, res, next) => {
       const [path, query] = req.url.split('?');
-      if (!path.endsWith('/') && existsSync(resolve(root, `.${path}`, 'index.html'))) {
-        res.writeHead(301, { Location: `${path}/${query ? `?${query}` : ''}` });
+      const send = (status, type, body) => {
+        res.writeHead(status, { 'Content-Type': `${type}; charset=utf-8` });
+        res.end(body);
+      };
+      if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+      if (path === '/') return send(200, 'text/html', REDIRECT_HTML);
+      const match = path.match(/^\/(en|de)(\/.*)?$/);
+      if (!match || !LANGUAGES.includes(match[1])) return next();
+      const [, lang, rest] = match;
+      if (rest === undefined) {
+        res.writeHead(301, { Location: `/${lang}/${query ? `?${query}` : ''}` });
         return res.end();
       }
+      if (rest === '/' || rest === '/index.html') {
+        try {
+          const html = await server.transformIndexHtml('/index.html', renderLanguage(readFileSync(TEMPLATE, 'utf8'), lang));
+          return send(200, 'text/html', html);
+        } catch (error) {
+          server.config.logger.error(error.message);
+          const escaped = error.message.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+          return send(500, 'text/html', `<pre>${escaped}</pre>`);
+        }
+      }
+      // /en/css/site.css and the like: relative asset URLs resolve to www/.
+      req.url = `${rest}${query ? `?${query}` : ''}`;
       next();
     });
-  },
-};
 
-// Re-render the home pages in dev when content/ or the template changes.
-const content = {
-  name: 'content',
-  configureServer(server) {
+    // Pages are rendered per request, so a change only needs a browser reload.
     server.watcher.add([CONTENT_DIR, TEMPLATE]);
     server.watcher.on('all', (event, file) => {
       const path = resolve(file);
       const fromContent = relative(CONTENT_DIR, path);
       if ((fromContent.startsWith('..') || isAbsolute(fromContent)) && path !== TEMPLATE) return;
-      try {
-        buildContent();
-        server.ws.send({ type: 'full-reload' });
-      } catch (error) {
-        server.config.logger.error(error.message);
-      }
+      server.ws.send({ type: 'full-reload' });
     });
+  },
+};
+
+// Build: dist/index.html is the built template with hashed assets (./assets/…).
+// Render it per language into dist/<lang>/index.html, then turn dist/index.html
+// into the language redirect. A throw here fails the build.
+const singlePageBuild = {
+  name: 'single-page-build',
+  apply: 'build',
+  closeBundle: {
+    order: 'post',
+    handler() {
+      const built = readFileSync(join(outDir, 'index.html'), 'utf8');
+      for (const lang of LANGUAGES) {
+        const html = renderLanguage(built, lang).replaceAll('./assets/', '../assets/');
+        mkdirSync(join(outDir, lang), { recursive: true });
+        writeFileSync(join(outDir, lang, 'index.html'), html);
+      }
+      writeFileSync(join(outDir, 'index.html'), REDIRECT_HTML);
+    },
   },
 };
 
@@ -61,9 +85,9 @@ export default defineConfig({
   appType: 'mpa',
   server: { port: 8000 },
   build: {
-    outDir: resolve(import.meta.dirname, 'dist'),
+    outDir,
     emptyOutDir: true,
-    rollupOptions: { input: pages(root) },
+    rollupOptions: { input: resolve(root, 'index.html') },
   },
-  plugins: [tailwindcss(), trailingSlash, content],
+  plugins: [tailwindcss(), singlePageDev, singlePageBuild],
 });

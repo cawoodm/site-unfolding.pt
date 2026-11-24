@@ -3,7 +3,3 @@ node_modules/
 old/
 dist/
 tmp/
-
-# Generated from templates/home.html + content/ by scripts/build-content.mjs
-www/en/index.html
-www/de/index.html

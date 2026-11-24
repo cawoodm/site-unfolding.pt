@@ -6,7 +6,6 @@ on:
     # Deploy when content, images (www/images/) or site code change; docs-only pushes do not deploy.
     paths:
       - 'content/**'
-      - 'templates/**'
       - 'www/**'
       - 'scripts/**'
       - 'vite.config.js'

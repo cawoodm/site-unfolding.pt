@@ -1,4 +1,4 @@
-// Mobile menu toggle and active-section highlight for the home pages.
+// Mobile menu toggle and active-section highlight for the page.
 
 const toggle = document.querySelector('[data-menu-toggle]');
 const menu = document.querySelector('[data-menu]');
@@ -30,3 +30,30 @@ if (sections.length && 'IntersectionObserver' in window) {
   }, { rootMargin: '-40% 0px -55% 0px' });
   sections.forEach((section) => observer.observe(section));
 }
+
+// Legal notice and privacy policy open as <dialog>s: footer links (#legal-notice,
+// #privacy) and deep links like /en/#privacy.
+const dialogFor = (hash) => {
+  const target = hash.length > 1 ? document.getElementById(decodeURIComponent(hash.slice(1))) : null;
+  return target instanceof HTMLDialogElement ? target : null;
+};
+
+document.addEventListener('click', (event) => {
+  const link = event.target.closest?.('a[href^="#"]');
+  const dialog = link && dialogFor(link.getAttribute('href'));
+  if (!dialog) return;
+  event.preventDefault();
+  dialog.showModal();
+});
+
+document.querySelectorAll('dialog').forEach((dialog) => {
+  // A click on the backdrop reports the dialog itself as its target.
+  dialog.addEventListener('click', (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+  dialog.addEventListener('close', () => {
+    if (location.hash === `#${dialog.id}`) history.replaceState(null, '', location.pathname + location.search);
+  });
+});
+
+dialogFor(location.hash)?.showModal();
