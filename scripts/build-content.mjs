@@ -58,7 +58,9 @@ export function renderItems(markdown) {
   return parts.map((part) => `<li><div>${marked.parse(part).trim()}</div></li>`).join('\n');
 }
 
-export function renderPage(template, { lang, languages, blocks, strings }) {
+// fallback: { lang, blocks, strings } is used for content missing in this language (never for the fallback language itself).
+// onFallback(list) is called once with the placeholders that used it, e.g. ["##pagetitle##"].
+export function renderPage(template, { lang, languages, blocks, strings, fallback, onFallback }) {
   const builtins = {
     LANG: () => lang,
     HEAD_LINKS: () => [
@@ -76,18 +78,32 @@ export function renderPage(template, { lang, languages, blocks, strings }) {
   };
   const usedBlocks = new Set();
   const usedStrings = new Set();
+  const fallbacks = [];
+  const fb = fallback && fallback.lang !== lang ? fallback : null;
 
   const html = template.replace(/##([A-Za-z0-9_.-]+?)(?::(items))?##/g, (_, key, mode) => {
     if (key.endsWith('.md')) {
-      if (!(key in blocks)) throw new Error(`${lang}: no content for placeholder ##${key}## (expected file content/${lang}/${key}; the name is case-sensitive)`);
-      usedBlocks.add(key);
-      return mode === 'items' ? renderItems(blocks[key]) : marked.parse(blocks[key]).trim();
+      let source = blocks;
+      if (key in blocks) usedBlocks.add(key);
+      else if (fb && key in fb.blocks) {
+        source = fb.blocks;
+        fallbacks.push(`##${key}${mode ? ':' + mode : ''}##`);
+      } else {
+        throw new Error(`${lang}: no content for placeholder ##${key}## (expected file content/${lang}/${key}${fb ? ` and content/${fb.lang}/${key}` : ''}; the name is case-sensitive)`);
+      }
+      return mode === 'items' ? renderItems(source[key]) : marked.parse(source[key]).trim();
     }
     if (mode) throw new Error(`${lang}: ##${key}:${mode}## is only allowed on a .md placeholder`);
     if (/^[a-z0-9_]+$/.test(key)) {
-      if (!(key in strings)) throw new Error(`${lang}: no content for placeholder ##${key}## (expected key "${key}" in content/${lang}/site.yml)`);
-      usedStrings.add(key);
-      return escapeHtml(strings[key]);
+      let source = strings;
+      if (key in strings) usedStrings.add(key);
+      else if (fb && key in fb.strings) {
+        source = fb.strings;
+        fallbacks.push(`##${key}##`);
+      } else {
+        throw new Error(`${lang}: no content for placeholder ##${key}## (expected key "${key}" in content/${lang}/site.yml${fb ? ` and content/${fb.lang}/site.yml` : ''})`);
+      }
+      return escapeHtml(source[key]);
     }
     if (/^[A-Z0-9_]+$/.test(key) && builtins[key]) return builtins[key]();
     throw new Error(`${lang}: unknown placeholder ##${key}## (use ##NAME.md## for a file, ##lowercase_key## for site.yml, or a built-in: ${Object.keys(builtins).join(', ')})`);
@@ -98,6 +114,7 @@ export function renderPage(template, { lang, languages, blocks, strings }) {
     ...Object.keys(strings).filter((k) => !usedStrings.has(k)),
   ];
   if (unused.length) throw new Error(`${lang}: content not used by the template: ${unused.join(', ')}`);
+  if (onFallback) onFallback(fallbacks);
   return html;
 }
 
@@ -124,6 +141,12 @@ export function loadLanguage(dir) {
 }
 
 // Renders the template for one language with the content of content/<lang>/.
+// Content missing there falls back to the first language (English); the build log gets one warning per language.
 export function renderLanguage(templateHtml, lang) {
-  return renderPage(templateHtml, { lang, languages: LANGUAGES, ...loadLanguage(join(CONTENT_DIR, lang)) });
+  const fallbackLang = LANGUAGES[0];
+  const fallback = { lang: fallbackLang, ...loadLanguage(join(CONTENT_DIR, fallbackLang)) };
+  const onFallback = (used) => {
+    if (used.length) console.warn(`${lang}: using ${fallbackLang} content for ${used.join(', ')}`);
+  };
+  return renderPage(templateHtml, { lang, languages: LANGUAGES, ...loadLanguage(join(CONTENT_DIR, lang)), fallback, onFallback });
 }

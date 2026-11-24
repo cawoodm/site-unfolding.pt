@@ -74,9 +74,11 @@ Any error in the renderer is thrown inside the plugin and fails the build.
 | `##menu_home##` | the HTML-escaped value of `menu_home` in `content/<lang>/site.yml` (lowercase is reserved for `site.yml`) |
 | `##LANG##`, `##HEAD_LINKS##`, `##LANG_SWITCH##` | built-ins: language code; canonical, `hreflang` and `og:url` tags; EN \| DE switch |
 
+If a placeholder has no content in `content/<lang>/`, the renderer uses the same file or key from `content/en/` (`LANGUAGES[0]`) and `renderLanguage()` logs one warning per language, e.g. `de: using en content for ##pagetitle##, ##ABOUT.md##`. Built-ins and English itself have no fallback. Fallback content is not reported as unused; the unused-content check still runs per language on that language's own files and keys.
+
 The build fails when:
 
-- a placeholder has no matching file or key, or is not one of the forms above;
+- a placeholder has no matching file or key in `content/<lang>/` and, for languages other than English, none in `content/en/` either, or it is not one of the forms above;
 - a content file or `site.yml` key is not used by the template;
 - `content/<lang>/` contains anything other than `.md` files and `site.yml`;
 - `site.yml` is not a list of `key: text` lines, a key is not lowercase, or a value is empty or not text;

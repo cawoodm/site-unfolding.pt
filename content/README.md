@@ -25,4 +25,4 @@ Markdown basics:
 
 Change a file on GitHub (pencil icon → "Commit changes" to `main`) and the site rebuilds and publishes within a few minutes. If the build fails, the old site stays online and the failed run under the repository's *Actions* tab shows why.
 
-Every block must exist in both languages. Do not add new files here: the page template decides which blocks exist.
+Do not add new files here: the page template decides which blocks exist. English is the master: every block and key must exist in `en/`. If a German text is missing, the English text is used and the build log shows a warning.

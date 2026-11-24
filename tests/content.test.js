@@ -118,3 +118,43 @@ test('a site.yml key must be lowercase letters, digits and underscores', () => {
     assert.throws(() => loadLanguage(dir), /key "menu-home" must be lowercase/);
   });
 });
+
+const fallback = { lang: 'en', blocks: { 'ABOUT.md': 'English *about*', 'SERVICES.md': '### A\n\nOne' }, strings: { pagetitle: 'Fish & Chips' } };
+const de = { ...base, lang: 'de' };
+
+test('a missing key falls back to the escaped English string', () => {
+  assert.equal(renderPage('##pagetitle##', { ...de, fallback }), 'Fish &amp; Chips');
+});
+
+test('a missing .md file falls back to the English block, also with :items', () => {
+  assert.equal(renderPage('##ABOUT.md##', { ...de, fallback }), '<p>English <em>about</em></p>');
+  assert.equal(renderPage('<ol>##SERVICES.md:items##</ol>', { ...de, fallback }), '<ol><li><div><h3>A</h3>\n<p>One</p></div></li></ol>');
+});
+
+test('German content wins over the English fallback', () => {
+  assert.equal(renderPage('##pagetitle##', { ...de, strings: { pagetitle: 'Titel' }, fallback }), 'Titel');
+});
+
+test('content missing in the language and in English names both folders', () => {
+  assert.throws(() => renderPage('##nope##', { ...de, fallback }), /de: no content for placeholder ##nope## \(expected key "nope" in content\/de\/site\.yml and content\/en\/site\.yml\)/);
+  assert.throws(() => renderPage('##NOPE.md##', { ...de, fallback }), /de: no content for placeholder ##NOPE\.md## \(expected file content\/de\/NOPE\.md and content\/en\/NOPE\.md;/);
+});
+
+test('English has no fallback: missing content still fails', () => {
+  assert.throws(() => renderPage('##pagetitle##', base), /en: no content for placeholder ##pagetitle## \(expected key "pagetitle" in content\/en\/site\.yml\)/);
+});
+
+test('every fallback is reported through onFallback', () => {
+  let reported;
+  renderPage('##pagetitle## ##ABOUT.md##', { ...de, fallback, onFallback: (list) => { reported = list; } });
+  assert.deepEqual(reported, ['##pagetitle##', '##ABOUT.md##']);
+  reported = undefined;
+  renderPage('x', { ...de, fallback, onFallback: (list) => { reported = list; } });
+  assert.deepEqual(reported, []);
+});
+
+test('the unused-content check stays per language and ignores fallback content', () => {
+  assert.throws(() => renderPage('##pagetitle##', { ...de, blocks: { 'EXTRA.md': 'y' }, fallback }), /de: content not used by the template: EXTRA\.md/);
+  assert.throws(() => renderPage('##pagetitle##', { ...de, strings: { extra: 'y' }, fallback }), /de: content not used by the template: extra/);
+  assert.equal(renderPage('##pagetitle##', { ...de, fallback }), 'Fish &amp; Chips');
+});
