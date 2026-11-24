@@ -3,6 +3,16 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+    # Deploy when content, images (www/images/) or site code change; docs-only pushes do not deploy.
+    paths:
+      - 'content/**'
+      - 'templates/**'
+      - 'www/**'
+      - 'scripts/**'
+      - 'vite.config.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 permissions:
