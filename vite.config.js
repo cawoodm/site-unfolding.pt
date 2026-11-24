@@ -2,6 +2,10 @@ import { existsSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
+import { buildContent, CONTENT_DIR, TEMPLATE } from './scripts/build-content.mjs';
+
+// Render content/ into www/<lang>/index.html before the page list is collected.
+buildContent();
 
 const root = resolve(import.meta.dirname, 'www');
 
@@ -30,6 +34,24 @@ const trailingSlash = {
   },
 };
 
+// Re-render the home pages in dev when content/ or the template changes.
+const content = {
+  name: 'content',
+  configureServer(server) {
+    server.watcher.add([CONTENT_DIR, TEMPLATE]);
+    server.watcher.on('all', (event, file) => {
+      const path = resolve(file);
+      if (!path.startsWith(CONTENT_DIR) && path !== TEMPLATE) return;
+      try {
+        buildContent();
+        server.ws.send({ type: 'full-reload' });
+      } catch (error) {
+        server.config.logger.error(error.message);
+      }
+    });
+  },
+};
+
 export default defineConfig({
   root,
   // Relative asset URLs, so the build works on a custom domain and under
@@ -42,5 +64,5 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: { input: pages(root) },
   },
-  plugins: [tailwindcss(), trailingSlash],
+  plugins: [tailwindcss(), trailingSlash, content],
 });

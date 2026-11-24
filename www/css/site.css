@@ -77,3 +77,27 @@
   .rise { animation: rise 1s ease-out both; }
   .rise-delay { animation-delay: .5s; }
 }
+
+/* Markdown blocks rendered from content/ into templates/home.html. */
+@layer components {
+  .md-hero h1 { @apply font-serif text-3xl font-bold text-white; }
+  .md-hero p + p { @apply mt-4; }
+
+  .md-welcome h2 { @apply mt-8 mb-3 text-xl tracking-wider text-secondary; }
+  .md-welcome h2:first-child { @apply mt-0; }
+  .md-welcome p { @apply mb-4; }
+
+  .md-card p { @apply mb-4; }
+  .md-card p:last-child { @apply mb-0; }
+
+  /* One numbered grid item per "### " section of services.md. */
+  .md-services { counter-reset: service; }
+  .md-services > li { @apply grid grid-cols-[2.5rem_1fr] gap-x-5; counter-increment: service; }
+  .md-services > li::before {
+    @apply row-span-2 flex size-10 items-center justify-center rounded bg-mist/40 font-serif text-lg text-primary;
+    content: counter(service);
+  }
+  .md-services h3 { @apply mb-1 text-sm uppercase tracking-[0.2em] text-secondary; }
+
+  .md-address a { @apply underline; }
+}
