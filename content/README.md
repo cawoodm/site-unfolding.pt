@@ -2,20 +2,24 @@
 
 Each language has a folder: `en/` (English) and `de/` (German).
 
-- `hero.md`, `welcome.md`, `services.md`, `journey.md`, `about.md`, `footer-contact.md` hold the text blocks of the home page.
+- `HERO.md`, `WELCOME.md`, `SERVICES.md`, `JOURNEY.md`, `ABOUT.md`, `FOOTER-CONTACT.md` hold the text blocks of the page.
+- `LEGAL-NOTICE.md` (Impressum in German) and `PRIVACY.md` (Datenschutz) hold the legal texts. They open as pop-up windows on the page.
 - `site.yml` holds short texts: page title, menu labels, button labels, image descriptions.
+
+The page template `www/index.html` places each file with a placeholder like `##WELCOME.md##`. The file name in the placeholder must match the file exactly, including upper and lower case. Lowercase placeholders such as `##menu_home##` are keys from `site.yml`.
 
 Markdown basics:
 
 - Empty line = new paragraph.
 - `**bold**`, `*italic*`, `[link text](https://example.com)`.
-- In `welcome.md`, `## Heading` starts a new heading.
-- In `services.md`, each `### Title` starts a new numbered item. An item may have several paragraphs. The layout is designed for 9–10 items.
-- In `footer-contact.md`, a `\` at the end of a line forces a line break.
+- In `WELCOME.md`, `## Heading` starts a new heading.
+- In `SERVICES.md`, each `### Title` starts a new numbered item. An item may have several paragraphs. The layout is designed for 9–10 items.
+- In `FOOTER-CONTACT.md` and `LEGAL-NOTICE.md`, a `\` at the end of a line forces a line break.
+- In `LEGAL-NOTICE.md` and `PRIVACY.md`, start with `##` for the title, then use `###` and `####` for lower headings.
 
 `site.yml`:
 
-- Each line is `key: text`.
+- Each line is `key: text`. Keys use lowercase letters, digits and `_` only.
 - If a text contains `:` or `#`, wrap it in double quotes, e.g. `title: "Unfolding Portugal: Algarve"`.
 - Never leave a text empty.
 
