@@ -7,9 +7,10 @@
 //   ##UPPER_NAME##     built-ins, computed per language: LANG, HEAD_LINKS, LANG_SWITCH (the language menu items)
 // With markers on (renderLanguage), editable output is wrapped for the cmsfree editor (cms.js):
 //   <!--cms:NAME.md-->…<!--/cms-->, <!--cms:NAME.md:items-->…<!--/cms-->, <!--cms:lower_key-->…<!--/cms-->
+// Content missing in content/<lang>/ comes from the root content/ (content/site.yml, content/NAME.md); markers do not tell the difference.
 // Strings get no marker inside a tag (attribute values) or in <title>, <textarea>, <script>, <style>. Built-ins never do.
 // Vite calls renderLanguage() per request in dev and once per language after the build.
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { Marked } from 'marked';
 import { parse as parseYaml } from 'yaml';
@@ -62,10 +63,9 @@ export function renderItems(markdown) {
   return parts.map((part) => `<li><div>${marked.parse(part).trim()}</div></li>`).join('\n');
 }
 
-// fallback: { lang, blocks, strings } is used for content missing in this language (never for the fallback language itself).
-// onFallback(list) is called once with the placeholders that used it, e.g. ["##pagetitle##"].
+// fallback: { blocks, strings } is the root content/, used for every language when its own content/<lang>/ lacks a block or key.
 // markers: true wraps blocks and text-context strings in <!--cms:KEY-->…<!--/cms--> (default false).
-export function renderPage(template, { lang, languages, blocks, strings, fallback, onFallback, markers = false }) {
+export function renderPage(template, { lang, languages, blocks, strings, fallback, markers = false }) {
   const builtins = {
     LANG: () => lang,
     HEAD_LINKS: () => [
@@ -84,8 +84,9 @@ export function renderPage(template, { lang, languages, blocks, strings, fallbac
   };
   const usedBlocks = new Set();
   const usedStrings = new Set();
-  const fallbacks = [];
-  const fb = fallback && fallback.lang !== lang ? fallback : null;
+  const rootBlocks = fallback?.blocks ?? {};
+  const rootStrings = fallback?.strings ?? {};
+  const usedRoot = new Set();
 
   const wrap = (name, content) => (markers ? `<!--cms:${name}-->${content}<!--/cms-->` : content);
   // True when the placeholder at `offset` sits inside a tag or in the raw text of <title>, <textarea>, <script> or <style>.
@@ -96,25 +97,23 @@ export function renderPage(template, { lang, languages, blocks, strings, fallbac
 
   const html = template.replace(/##([A-Za-z0-9_.-]+?)(?::(items))?##/g, (_, key, mode, offset) => {
     if (key.endsWith('.md')) {
+      if (key in rootBlocks) usedRoot.add(key);
       let source = blocks;
       if (key in blocks) usedBlocks.add(key);
-      else if (fb && key in fb.blocks) {
-        source = fb.blocks;
-        fallbacks.push(`##${key}${mode ? ':' + mode : ''}##`);
-      } else {
-        throw new Error(`${lang}: no content for placeholder ##${key}## (expected file content/${lang}/${key}${fb ? ` and content/${fb.lang}/${key}` : ''}; the name is case-sensitive)`);
+      else if (key in rootBlocks) source = rootBlocks;
+      else {
+        throw new Error(`${lang}: no content for placeholder ##${key}## (expected file content/${lang}/${key}${fallback ? ` and content/${key}` : ''}; the name is case-sensitive)`);
       }
       return wrap(key + (mode ? ':' + mode : ''), mode === 'items' ? renderItems(source[key]) : marked.parse(source[key]).trim());
     }
     if (mode) throw new Error(`${lang}: ##${key}:${mode}## is only allowed on a .md placeholder`);
     if (/^[a-z0-9_]+$/.test(key)) {
+      if (key in rootStrings) usedRoot.add(key);
       let source = strings;
       if (key in strings) usedStrings.add(key);
-      else if (fb && key in fb.strings) {
-        source = fb.strings;
-        fallbacks.push(`##${key}##`);
-      } else {
-        throw new Error(`${lang}: no content for placeholder ##${key}## (expected key "${key}" in content/${lang}/site.yml${fb ? ` and content/${fb.lang}/site.yml` : ''})`);
+      else if (key in rootStrings) source = rootStrings;
+      else {
+        throw new Error(`${lang}: no content for placeholder ##${key}## (expected key "${key}" in content/${lang}/site.yml${fallback ? ' and content/site.yml' : ''})`);
       }
       return noMarkerHere(offset) ? escapeHtml(source[key]) : wrap(key, escapeHtml(source[key]));
     }
@@ -127,7 +126,9 @@ export function renderPage(template, { lang, languages, blocks, strings, fallbac
     ...Object.keys(strings).filter((k) => !usedStrings.has(k)),
   ];
   if (unused.length) throw new Error(`${lang}: content not used by the template: ${unused.join(', ')}`);
-  if (onFallback) onFallback(fallbacks);
+  // A root entry counts as used when the template references it, even if every language overrides it.
+  const unusedRoot = [...Object.keys(rootBlocks), ...Object.keys(rootStrings)].filter((k) => !usedRoot.has(k));
+  if (unusedRoot.length) throw new Error(`content/: content not used by the template: ${unusedRoot.join(', ')}`);
   return html;
 }
 
@@ -141,11 +142,13 @@ function loadStrings(path) {
   return strings;
 }
 
-export function loadLanguage(dir) {
+function loadDir(dir, { skipFolders = false } = {}) {
   const blocks = {};
   let strings = {};
-  for (const file of readdirSync(dir).sort()) {
+  for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+    const file = entry.name;
     const path = join(dir, file);
+    if (entry.isDirectory() && skipFolders) continue;
     if (file.endsWith('.md')) blocks[file] = readFileSync(path, 'utf8');
     else if (file === 'site.yml') strings = loadStrings(path);
     else throw new Error(`${path}: only .md files and site.yml are allowed`);
@@ -153,13 +156,15 @@ export function loadLanguage(dir) {
   return { blocks, strings };
 }
 
+export const loadLanguage = (dir) => loadDir(dir);
+
+// The root content/: defaults shared by every language. Language folders are skipped; the folder may be missing.
+export function loadRoot(dir = CONTENT_DIR) {
+  return existsSync(dir) ? loadDir(dir, { skipFolders: true }) : { blocks: {}, strings: {} };
+}
+
 // Renders the template for one language with the content of content/<lang>/.
-// Content missing there falls back to the first language (English); the build log gets one warning per language.
+// A block or key missing there comes from the root content/.
 export function renderLanguage(templateHtml, lang) {
-  const fallbackLang = LANGUAGES[0];
-  const fallback = { lang: fallbackLang, ...loadLanguage(join(CONTENT_DIR, fallbackLang)) };
-  const onFallback = (used) => {
-    if (used.length) console.warn(`${lang}: using ${fallbackLang} content for ${used.join(', ')}`);
-  };
-  return renderPage(templateHtml, { lang, languages: LANGUAGES, ...loadLanguage(join(CONTENT_DIR, lang)), fallback, onFallback, markers: true });
+  return renderPage(templateHtml, { lang, languages: LANGUAGES, ...loadLanguage(join(CONTENT_DIR, lang)), fallback: loadRoot(), markers: true });
 }

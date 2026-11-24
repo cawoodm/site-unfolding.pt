@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadLanguage, renderItems, renderPage } from '../scripts/build-content.mjs';
+import { loadLanguage, loadRoot, renderItems, renderPage } from '../scripts/build-content.mjs';
 
 const base = { lang: 'en', languages: ['en', 'de'], blocks: {}, strings: {} };
 
@@ -119,44 +119,49 @@ test('a site.yml key must be lowercase letters, digits and underscores', () => {
   });
 });
 
-const fallback = { lang: 'en', blocks: { 'ABOUT.md': 'English *about*', 'SERVICES.md': '### A\n\nOne' }, strings: { pagetitle: 'Fish & Chips' } };
+const root = { blocks: { 'ABOUT.md': 'Root *about*', 'SERVICES.md': '### A\n\nOne' }, strings: { pagetitle: 'Fish & Chips' } };
 const de = { ...base, lang: 'de' };
+const rootStrings = { blocks: {}, strings: root.strings };
 
-test('a missing key falls back to the escaped English string', () => {
-  assert.equal(renderPage('##pagetitle##', { ...de, fallback }), 'Fish &amp; Chips');
+test('a key missing in de falls back to the escaped root string', () => {
+  assert.equal(renderPage('##pagetitle##', { ...de, fallback: rootStrings }), 'Fish &amp; Chips');
 });
 
-test('a missing .md file falls back to the English block, also with :items', () => {
-  assert.equal(renderPage('##ABOUT.md##', { ...de, fallback }), '<p>English <em>about</em></p>');
-  assert.equal(renderPage('<ol>##SERVICES.md:items##</ol>', { ...de, fallback }), '<ol><li><div><h3>A</h3>\n<p>One</p></div></li></ol>');
+test('a key missing in en also falls back to the root', () => {
+  assert.equal(renderPage('##pagetitle##', { ...base, fallback: rootStrings }), 'Fish &amp; Chips');
 });
 
-test('German content wins over the English fallback', () => {
-  assert.equal(renderPage('##pagetitle##', { ...de, strings: { pagetitle: 'Titel' }, fallback }), 'Titel');
+test('a missing .md file falls back to the root block, also with :items', () => {
+  assert.equal(renderPage('##ABOUT.md##', { ...de, fallback: { blocks: { 'ABOUT.md': root.blocks['ABOUT.md'] }, strings: {} } }), '<p>Root <em>about</em></p>');
+  assert.equal(renderPage('<ol>##SERVICES.md:items##</ol>', { ...base, fallback: { blocks: { 'SERVICES.md': root.blocks['SERVICES.md'] }, strings: {} } }), '<ol><li><div><h3>A</h3>\n<p>One</p></div></li></ol>');
 });
 
-test('content missing in the language and in English names both folders', () => {
-  assert.throws(() => renderPage('##nope##', { ...de, fallback }), /de: no content for placeholder ##nope## \(expected key "nope" in content\/de\/site\.yml and content\/en\/site\.yml\)/);
-  assert.throws(() => renderPage('##NOPE.md##', { ...de, fallback }), /de: no content for placeholder ##NOPE\.md## \(expected file content\/de\/NOPE\.md and content\/en\/NOPE\.md;/);
+test('own-language content wins over the root', () => {
+  assert.equal(renderPage('##pagetitle##', { ...de, strings: { pagetitle: 'Titel' }, fallback: rootStrings }), 'Titel');
+  assert.equal(renderPage('##ABOUT.md##', { ...de, blocks: { 'ABOUT.md': 'Über' }, fallback: { blocks: { 'ABOUT.md': 'x' }, strings: {} } }), '<p>Über</p>');
 });
 
-test('English has no fallback: missing content still fails', () => {
+test('content missing in the language and in the root names both files', () => {
+  assert.throws(() => renderPage('##nope##', { ...de, fallback: rootStrings }), /de: no content for placeholder ##nope## \(expected key "nope" in content\/de\/site\.yml and content\/site\.yml\)/);
+  assert.throws(() => renderPage('##NOPE.md##', { ...de, fallback: rootStrings }), /de: no content for placeholder ##NOPE\.md## \(expected file content\/de\/NOPE\.md and content\/NOPE\.md;/);
+});
+
+test('without a root, missing content still fails', () => {
   assert.throws(() => renderPage('##pagetitle##', base), /en: no content for placeholder ##pagetitle## \(expected key "pagetitle" in content\/en\/site\.yml\)/);
 });
 
-test('every fallback is reported through onFallback', () => {
-  let reported;
-  renderPage('##pagetitle## ##ABOUT.md##', { ...de, fallback, onFallback: (list) => { reported = list; } });
-  assert.deepEqual(reported, ['##pagetitle##', '##ABOUT.md##']);
-  reported = undefined;
-  renderPage('x', { ...de, fallback, onFallback: (list) => { reported = list; } });
-  assert.deepEqual(reported, []);
+test('the per-language unused-content check ignores root content', () => {
+  assert.throws(() => renderPage('##pagetitle##', { ...de, blocks: { 'EXTRA.md': 'y' }, fallback: rootStrings }), /de: content not used by the template: EXTRA\.md/);
+  assert.throws(() => renderPage('##pagetitle##', { ...de, strings: { extra: 'y' }, fallback: rootStrings }), /de: content not used by the template: extra/);
 });
 
-test('the unused-content check stays per language and ignores fallback content', () => {
-  assert.throws(() => renderPage('##pagetitle##', { ...de, blocks: { 'EXTRA.md': 'y' }, fallback }), /de: content not used by the template: EXTRA\.md/);
-  assert.throws(() => renderPage('##pagetitle##', { ...de, strings: { extra: 'y' }, fallback }), /de: content not used by the template: extra/);
-  assert.equal(renderPage('##pagetitle##', { ...de, fallback }), 'Fish &amp; Chips');
+test('a root key or file the template never references fails the build', () => {
+  assert.throws(() => renderPage('##pagetitle##', { ...de, fallback: { blocks: {}, strings: { pagetitle: 'x', stray: 'y' } } }), /content\/: content not used by the template: stray/);
+  assert.throws(() => renderPage('##pagetitle##', { ...de, fallback: { blocks: root.blocks, strings: root.strings } }), /content\/: content not used by the template: ABOUT\.md, SERVICES\.md/);
+});
+
+test('a root key overridden in the language still counts as used', () => {
+  assert.equal(renderPage('##pagetitle##', { ...de, strings: { pagetitle: 'Titel' }, fallback: rootStrings }), 'Titel');
 });
 
 const on = { ...base, markers: true };
@@ -191,7 +196,19 @@ test('markers never wrap built-ins', () => {
   assert.doesNotMatch(renderPage('##LANG##|##HEAD_LINKS##|##LANG_SWITCH##', on), /cms/);
 });
 
-test('a block from the English fallback is still marked, without a language in the key', () => {
-  assert.equal(renderPage('##ABOUT.md##', { ...de, markers: true, fallback }), '<!--cms:ABOUT.md--><p>English <em>about</em></p><!--/cms-->');
-  assert.equal(renderPage('<p>##pagetitle##</p>', { ...de, markers: true, fallback }), '<p><!--cms:pagetitle-->Fish &amp; Chips<!--/cms--></p>');
+test('root content has plain markers, without a suffix', () => {
+  assert.equal(renderPage('##ABOUT.md##', { ...de, markers: true, fallback: { blocks: { 'ABOUT.md': root.blocks['ABOUT.md'] }, strings: {} } }), '<!--cms:ABOUT.md--><p>Root <em>about</em></p><!--/cms-->');
+  assert.equal(renderPage('<p>##pagetitle##</p>', { ...de, markers: true, fallback: rootStrings }), '<p><!--cms:pagetitle-->Fish &amp; Chips<!--/cms--></p>');
+  assert.equal(renderPage('<img alt="##pagetitle##">', { ...de, markers: true, fallback: rootStrings }), '<img alt="Fish &amp; Chips">');
+});
+
+test('loadRoot reads .md files and site.yml, skips language folders and a missing folder', () => {
+  withDir({ 'site.yml': 'pagetitle: Unfolding Portugal\n', 'SHARED.md': 'x' }, (dir) => {
+    mkdirSync(join(dir, 'en'));
+    writeFileSync(join(dir, 'en', 'HERO.md'), 'y');
+    assert.deepEqual(loadRoot(dir), { blocks: { 'SHARED.md': 'x' }, strings: { pagetitle: 'Unfolding Portugal' } });
+    writeFileSync(join(dir, 'notes.txt'), 'x');
+    assert.throws(() => loadRoot(dir), /notes\.txt: only \.md files and site\.yml are allowed/);
+  });
+  assert.deepEqual(loadRoot(join(tmpdir(), 'does-not-exist-content')), { blocks: {}, strings: {} });
 });

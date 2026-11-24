@@ -66,7 +66,7 @@ Any error in the renderer is thrown inside the plugin and fails the build.
 
 ## Rendering a language
 
-`renderLanguage(templateHtml, lang)` loads `content/<lang>/` and replaces each placeholder:
+`renderLanguage(templateHtml, lang)` loads `content/<lang>/` and the root `content/` and replaces each placeholder:
 
 | Placeholder | Replaced with |
 |---|---|
@@ -85,18 +85,18 @@ Any error in the renderer is thrown inside the plugin and fails the build.
 <!--cms:menu_home-->Home<!--/cms-->
 ```
 
-- Blocks are always wrapped, also when they come from the English fallback. The key has no language.
+- Blocks are always wrapped, also when they come from the root `content/`. The key has no language.
 - Strings are wrapped only in text context: no marker inside a tag (attribute values) or in the raw text of `<title>`, `<textarea>`, `<script>`, `<style>`.
 - Built-ins (`##LANG##`, `##HEAD_LINKS##`, `##LANG_SWITCH##`) are never wrapped.
 - `renderPage()` only adds markers with the option `markers: true` (default `false`); `renderLanguage()` sets it.
 
-If a placeholder has no content in `content/<lang>/`, the renderer uses the same file or key from `content/en/` (`LANGUAGES[0]`) and `renderLanguage()` logs one warning per language, e.g. `de: using en content for ##pagetitle##, ##ABOUT.md##`. Built-ins and English itself have no fallback. Fallback content is not reported as unused; the unused-content check still runs per language on that language's own files and keys.
+If a placeholder has no content in `content/<lang>/`, the renderer uses the same file or key from the root `content/` (`content/NAME.md`, `content/site.yml`). The root applies to every language; no language falls back to another one. Content in a language folder wins over the root. Every file and key in a language folder must be used by the template. The same is true for the root, but a root key that every language overrides is fine as long as the template references it.
 
 The build fails when:
 
-- a placeholder has no matching file or key in `content/<lang>/` and, for languages other than English, none in `content/en/` either, or it is not one of the forms above;
-- a content file or `site.yml` key is not used by the template;
-- `content/<lang>/` contains anything other than `.md` files and `site.yml`;
+- a placeholder has no matching file or key in `content/<lang>/` and none in the root `content/`, or it is not one of the forms above;
+- a content file or `site.yml` key (in a language folder or in the root) is not used by the template;
+- `content/<lang>/` contains anything other than `.md` files and `site.yml`, or `content/` contains anything other than `.md` files, `site.yml` and the language folders;
 - `site.yml` is not a list of `key: text` lines, a key is not lowercase, or a value is empty or not text;
 - an `:items` block has text before its first `### ` heading.
 

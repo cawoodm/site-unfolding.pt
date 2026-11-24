@@ -1,6 +1,6 @@
 # Editing the website text
 
-Each language has a folder: `en/` (English) and `de/` (German).
+Each language has a folder in `content/`: `en/` (English) and `de/` (German). Texts that are the same in every language go in `content/site.yml` (and `content/NAME.md` for blocks). A language folder only needs the texts that differ.
 
 - `HERO.md`, `WELCOME.md`, `SERVICES.md`, `JOURNEY.md`, `ABOUT.md`, `FOOTER-CONTACT.md` hold the text blocks of the page.
 - `LEGAL-NOTICE.md` (Impressum in German) and `PRIVACY.md` (Datenschutz) hold the legal texts. They open as pop-up windows on the page.
@@ -25,7 +25,7 @@ Markdown basics:
 
 Change a file on GitHub (pencil icon → "Commit changes" to `main`) and the site rebuilds and publishes within a few minutes. If the build fails, the old site stays online and the failed run under the repository's *Actions* tab shows why.
 
-Do not add new files here: the page template decides which blocks exist. English is the master: every block and key must exist in `en/`. If a German text is missing, the English text is used and the build log shows a warning.
+Do not add new files here: the page template decides which blocks exist. Every block and key must exist in the language folder or in `content/`. If a language folder lacks one, the text from `content/` is used. If it is in neither place, the build fails. A text in a language folder wins over the same text in `content/`.
 
 ## Edit in the browser
 
