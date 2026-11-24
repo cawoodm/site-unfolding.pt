@@ -1,6 +1,6 @@
 @import "tailwindcss";
-/* Classes may also appear in the renderer (scripts/), outside the www/ root. */
-@source "../../scripts";
+/* Classes in the page template and the shared partials. */
+@source "../../layouts";
 
 @font-face {
   font-family: "Lato";

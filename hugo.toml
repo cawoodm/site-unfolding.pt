@@ -1,0 +1,33 @@
+baseURL = "https://unfolding.pt/"
+title = "Unfolding Portugal"
+defaultContentLanguage = "en"
+defaultContentLanguageInSubdir = true
+disableHugoGeneratorInject = true
+# The sitemap is static (static/sitemap.xml).
+disableKinds = ["section", "taxonomy", "term", "rss", "sitemap", "404"]
+
+[languages.en]
+contentDir = "content/en"
+languageName = "English"
+weight = 1
+
+[languages.de]
+contentDir = "content/de"
+languageName = "Deutsch"
+weight = 2
+
+# Blocks are content for the cmsfree editor, not pages.
+[[cascade]]
+[cascade.build]
+render = "never"
+list = "never"
+[cascade.target]
+path = "/blocks/**"
+
+# Match the marked renderer used by the cmsfree editor.
+[markup.goldmark.parser]
+autoHeadingID = false
+[markup.goldmark.extensions.typographer]
+disable = true
+[markup.goldmark.renderer]
+unsafe = true

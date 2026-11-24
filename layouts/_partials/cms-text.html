@@ -1,0 +1,3 @@
+{{- $v := T . -}}
+{{- if not $v }}{{ errorf "%s: no string %s" site.Language.Lang . }}{{ end -}}
+{{- printf "<!--cms:%s-->" . | safeHTML }}{{ $v }}{{ "<!--/cms-->" | safeHTML -}}

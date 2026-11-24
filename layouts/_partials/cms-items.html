@@ -1,0 +1,9 @@
+{{- $name := . -}}
+{{- $path := printf "/blocks/%s" (strings.TrimSuffix ".md" $name) -}}
+{{- $p := site.GetPage $path -}}
+{{- if not $p }}{{ $p = site.Sites.Default.GetPage $path }}{{ end -}}
+{{- if not $p }}{{ errorf "%s: no block %s" site.Language.Lang $name }}{{ end -}}
+{{- $parts := split (replaceRE `(?m)^### ` "\x00### " $p.RawContent) "\x00" -}}
+{{- $items := slice -}}
+{{- range $parts }}{{ with strings.TrimSpace . }}{{ $items = $items | append (printf "<li><div>%s</div></li>" ($p.RenderString (dict "display" "block") . | strings.TrimSpace)) }}{{ end }}{{ end -}}
+{{- printf "<!--cms:%s:items-->" $name | safeHTML }}{{ delimit $items "\n" | safeHTML }}{{ "<!--/cms-->" | safeHTML -}}

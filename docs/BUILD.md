@@ -1,137 +1,59 @@
 # Build
 
-The site is one page per language, built from one template and one content folder per language.
+The site is a plain [Hugo](https://gohugo.io) site (extended edition, 0.147.8): one page template, one content folder per language, no custom build script. Tailwind runs through Hugo (`css.TailwindCSS`).
 
 | Input | Role |
 |---|---|
-| `www/index.html` | The single page template with `##placeholders##` |
-| `content/en/`, `content/de/` | Text: Markdown blocks (`HERO.md`, `WELCOME.md`, …) and short strings in `site.yml` |
-| `www/css/site.css` | Tailwind v4 entry point, fonts, theme, styles for rendered Markdown |
-| `www/js/main.js` | Menu, active section, legal dialogs |
-| `www/images/`, `www/fonts/` | Assets, hashed by Vite |
-| `www/public/` | Copied as is (`sitemap.xml`, `robots.txt`, `cms.js`) |
-| `www/public/cms.js` | The cmsfree browser editor, copied from the cmsfree repo (`dist/cms.js`). Do not edit it here |
-| `scripts/build-content.mjs` | Renderer: fills the placeholders for one language |
+| `hugo.toml` | Languages (`en`, `de`), `baseURL`, Goldmark settings, cascade that keeps blocks from rendering as pages |
+| `layouts/home.html` | The single page template (was `www/index.html`) |
+| `layouts/alias.html` | The root redirect page (`/` goes to `en/` or `de/` by browser language) |
+| `layouts/_partials/cms-*.html` | Partials that output blocks, `:items` lists and strings with the cmsfree edit markers. Shipped by cmsfree; do not edit |
+| `layouts/_markup/render-link.html` | Link render hook: keeps `tel:` links (Hugo's built-in hook turns them into `#ZgotmplZ`) |
+| `content/<lang>/blocks/*.md` | Markdown blocks (`HERO.md`, `WELCOME.md`, ...), no front matter |
+| `i18n/<lang>.yaml` | Short strings, one `key: text` line each. German falls back to English per key |
+| `assets/css/site.css` | Tailwind v4 entry point, fonts, theme, styles for rendered Markdown |
+| `assets/js/main.js` | Menu, active section, legal dialogs |
+| `static/` | Copied as is: `images/`, `fonts/`, `robots.txt`, `sitemap.xml`, `cms.js` (the cmsfree editor, copied from the cmsfree repo; do not edit here) |
 
-## Production build
-
-`npm run build` runs `vite build` with two steps: Vite builds the template once, then the `single-page-build` plugin in `vite.config.js` renders it per language.
-
-```mermaid
-flowchart TD
-    T["www/index.html<br/>template with ##placeholders##"]
-    A["css/site.css · js/main.js<br/>images/ · fonts/"]
-    P["www/public/<br/>sitemap.xml · robots.txt"]
-    C["content/&lt;lang&gt;/<br/>*.md + site.yml"]
-
-    subgraph vite ["1 · vite build"]
-        V["Tailwind CSS, bundle JS,<br/>hash assets"]
-    end
-
-    subgraph plugin ["2 · single-page-build (closeBundle)"]
-        R["renderLanguage(html, lang)<br/>for en and de"]
-        X["rewrite ./assets/ → ../assets/"]
-        D["write redirect page"]
-    end
-
-    T --> V
-    A --> V
-    V --> B["dist/index.html<br/>built template"]
-    V --> H["dist/assets/*<br/>hashed files"]
-    P --> Q["dist/sitemap.xml · robots.txt"]
-    B --> R
-    C --> R
-    R --> X
-    X --> EN["dist/en/index.html"]
-    X --> DE["dist/de/index.html"]
-    D --> RD["dist/index.html<br/>language redirect"]
-```
-
-1. **Vite** builds `www/index.html`: Tailwind generates the CSS, `main.js` is bundled, images and fonts get hashed names in `dist/assets/`. The placeholders pass through untouched. Because `base` is `'./'`, every asset URL is relative (`./assets/…`), so the site works on `unfolding.pt` and under `cawoodm.github.io/site-unfolding.pt/`.
-2. **The plugin** reads the built `dist/index.html` and calls `renderLanguage()` once per language (`LANGUAGES` = `en`, `de`). Each result moves one folder down, so `./assets/` becomes `../assets/`, and is written to `dist/<lang>/index.html`.
-3. **The plugin** then overwrites `dist/index.html` with the redirect page: German if the browser ranks German above English, otherwise English (without JS: English).
-
-Output:
+## Commands
 
 ```
-dist/
+npm install
+npm run dev     # hugo server on http://localhost:1313/ (/ redirects, /en/ and /de/)
+npm run build   # hugo: writes public/
+npm test        # hugo, then node --test tests/site.test.js
+```
+
+Use `hugo` without `--quiet` (it hides errors) and without `--minify` (it strips the edit markers). Hugo, `tailwindcss` and `@tailwindcss/cli` must be installed (`npm install` gets the last two).
+
+## Template
+
+| In `layouts/home.html` | Output |
+|---|---|
+| `{{ partial "cms-block.html" "WELCOME.md" }}` | `content/<lang>/blocks/WELCOME.md` as HTML, wrapped in `<!--cms:WELCOME.md-->...<!--/cms-->` |
+| `{{ partial "cms-items.html" "SERVICES.md" }}` | the file split at `### ` headings, one `<li><div>...</div></li>` each |
+| `{{ partial "cms-text.html" "menu_home" }}` | the string `menu_home` from `i18n/<lang>.yaml`, wrapped in a marker (text context only) |
+| `{{ T "title" }}` | the same string without a marker (attributes, `<title>`) |
+
+A block or string missing in a language comes from the default language (English). A missing block or string fails the build (the partials call `errorf`; `T` in attributes only warns, which `npm test` catches).
+
+i18n keys must not be `description`, `other`, `one`, `two`, `few`, `many`, `zero`, `id`, `hash`, `translation`: go-i18n then reads the whole file as one message and every lookup is empty. That is why the meta description key is `meta_description`.
+
+Assets: CSS and JS go through Hugo pipes (`css.TailwindCSS`, `js.Build`, `fingerprint`), images and fonts are static. Links use `relURL` (root-relative, e.g. `/en/`), canonical and `hreflang` links use `.Permalink` (`https://unfolding.pt/...`). The editor loader adds `/cms.js` only with `?edit` or in a browser that has edited before.
+
+## Output
+
+```
+public/
   index.html        language redirect
   en/index.html     English page (legal notice + privacy as dialogs)
   de/index.html     German page (Impressum + Datenschutz as dialogs)
-  assets/…          shared CSS, JS, images, fonts
-  sitemap.xml, robots.txt
+  css/site.<hash>.css, js/main.<hash>.js
+  images/, fonts/, cms.js, robots.txt, sitemap.xml
 ```
-
-Any error in the renderer is thrown inside the plugin and fails the build.
-
-## Rendering a language
-
-`renderLanguage(templateHtml, lang)` loads `content/<lang>/` and the root `content/` and replaces each placeholder:
-
-| Placeholder | Replaced with |
-|---|---|
-| `##WELCOME.md##` | `content/<lang>/WELCOME.md` as HTML (exact, case-sensitive file name) |
-| `##SERVICES.md:items##` | that file split at `### ` headings, one `<li>` per section |
-| `##menu_home##` | the HTML-escaped value of `menu_home` in `content/<lang>/site.yml` (lowercase is reserved for `site.yml`) |
-| `##LANG##`, `##HEAD_LINKS##`, `##LANG_SWITCH##` | built-ins: language code; canonical, `hreflang` and `og:url` tags; the items of the language menu (globe icon) |\| DE switch |
-
-### Edit markers
-
-`renderLanguage()` also wraps editable output in HTML comments, so the cmsfree editor (`cms.js`, loaded by the inline loader at the end of `www/index.html` only with `?edit` or in a browser that has edited before) can find it on the live page:
-
-```html
-<!--cms:WELCOME.md-->…rendered HTML…<!--/cms-->
-<!--cms:SERVICES.md:items--><li>…</li><!--/cms-->
-<!--cms:menu_home-->Home<!--/cms-->
-```
-
-- Blocks are always wrapped, also when they come from the root `content/`. The key has no language.
-- Strings are wrapped only in text context: no marker inside a tag (attribute values) or in the raw text of `<title>`, `<textarea>`, `<script>`, `<style>`.
-- Built-ins (`##LANG##`, `##HEAD_LINKS##`, `##LANG_SWITCH##`) are never wrapped.
-- `renderPage()` only adds markers with the option `markers: true` (default `false`); `renderLanguage()` sets it.
-
-If a placeholder has no content in `content/<lang>/`, the renderer uses the same file or key from the root `content/` (`content/NAME.md`, `content/site.yml`). The root applies to every language; no language falls back to another one. Content in a language folder wins over the root. Every file and key in a language folder must be used by the template. The same is true for the root, but a root key that every language overrides is fine as long as the template references it.
-
-The build fails when:
-
-- a placeholder has no matching file or key in `content/<lang>/` and none in the root `content/`, or it is not one of the forms above;
-- a content file or `site.yml` key (in a language folder or in the root) is not used by the template;
-- `content/<lang>/` contains anything other than `.md` files and `site.yml`, or `content/` contains anything other than `.md` files, `site.yml` and the language folders;
-- `site.yml` is not a list of `key: text` lines, a key is not lowercase, or a value is empty or not text;
-- an `:items` block has text before its first `### ` heading.
-
-## Development
-
-`npm run dev` writes nothing: the `single-page-dev` plugin renders the template on every request.
-
-```mermaid
-flowchart LR
-    B["Browser"] -->|"GET /"| RD["redirect page"]
-    B -->|"GET /en/ or /de/"| M["renderLanguage(www/index.html, lang)<br/>→ Vite transformIndexHtml"]
-    B -->|"GET /en/css/site.css …"| S["strip /en → /css/site.css<br/>served by Vite"]
-    W["edit content/ or www/index.html"] -->|"watcher"| F["full page reload"]
-```
-
-- `/` serves the redirect page; `/en` and `/de` redirect to `/en/` and `/de/`.
-- `/en/` and `/de/` render the template, then Vite injects its dev client (HMR for CSS and JS).
-- Relative asset requests under `/en/` or `/de/` are rewritten to the `www/` root.
-- A change in `content/` or `www/index.html` triggers a full reload. A render error is shown in the browser and logged.
-
-`npm run preview` serves the last production build from `dist/`.
 
 ## Tests and deployment
 
-`npm test` runs `vite build`, then:
+`npm test` builds, then `tests/site.test.js` checks `public/`: exactly three pages, every local reference resolves, Tailwind generated the template's utilities, both dialogs have content, no placeholder or template code is left, edit markers for every block in both languages, `hreflang` links, no empty translated string, the root redirect, no third-party scripts, the cms.js loader.
 
-- `tests/site.test.js` checks the built `dist/`: exactly three pages, every local reference resolves, no root-absolute URLs, Tailwind generated the template's utilities, both dialogs have content, no `##placeholder##` is left, no Sitejet or third-party scripts, edit markers and the cms.js loader are present (and no plain cms.js script tag).
-- `tests/content.test.js` checks the renderer: placeholder rules, escaping, `:items`, built-ins, edit markers and every build error above.
-
-```mermaid
-flowchart LR
-    Push["push to main<br/>(content/, www/, scripts/,<br/>build config)"] --> CI["GitHub Actions<br/>npm ci · npm test"]
-    CI --> Art["upload dist/<br/>as Pages artifact"]
-    Art --> Dep["deploy job"]
-    Dep --> Live["GitHub Pages"]
-```
-
-`.github/workflows/pages.yml` runs on pushes to `main` that touch `content/`, `www/` (including images), `scripts/`, `vite.config.js`, `package.json`, `package-lock.json` or the workflow itself. The `build` job runs `npm ci` and `npm test` and uploads `dist/`; a separate `deploy` job publishes it. If a test fails, nothing is deployed and the live site stays as it was.
+`.github/workflows/pages.yml` runs on pushes to `main` that touch `content/`, `i18n/`, `layouts/`, `assets/`, `static/`, `hugo.toml`, `tests/`, `package*.json` or the workflow. The `build` job installs Hugo extended 0.147.8 and Node, runs `npm ci` and `npm test`, and uploads `public/`; a separate `deploy` job publishes it. If a test fails, nothing is deployed.

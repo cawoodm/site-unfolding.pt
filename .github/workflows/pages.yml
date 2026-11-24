@@ -3,12 +3,15 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
-    # Deploy when content, images (www/images/) or site code change; docs-only pushes do not deploy.
+    # Deploy when content, translations, layouts, assets or config change; docs-only pushes do not deploy.
     paths:
       - 'content/**'
-      - 'www/**'
-      - 'scripts/**'
-      - 'vite.config.js'
+      - 'i18n/**'
+      - 'layouts/**'
+      - 'assets/**'
+      - 'static/**'
+      - 'hugo.toml'
+      - 'tests/**'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/pages.yml'
@@ -28,17 +31,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: '0.147.8'
+          extended: true
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
       - run: npm ci
-      # Builds www/ into dist/ and checks the result.
+      # Builds the site into public/ with Hugo and checks the result.
       - run: npm test
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: dist
+          path: public
 
   deploy:
     needs: build
