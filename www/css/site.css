@@ -1,4 +1,8 @@
 @import "tailwindcss";
+/* The home pages are generated from templates/ (classes in scripts/ too) and are
+   git-ignored, so Tailwind must scan their sources explicitly. */
+@source "../../templates";
+@source "../../scripts";
 
 @font-face {
   font-family: "Lato";

@@ -70,6 +70,15 @@ test('no root-absolute references (site must work under a sub-path)', () => {
   assert.deepEqual(absolute, []);
 });
 
+// The home pages are generated and git-ignored, so Tailwind only sees the
+// template's classes through @source in site.css.
+test('built CSS includes utilities used only in templates/home.html', () => {
+  const styles = css.map((file) => readFileSync(file, 'utf8')).join('\n');
+  for (const selector of ['.min-h-\\[85vh\\]', '.md\\:grid-flow-col', '.md\\:grid-rows-5', '.aspect-square']) {
+    assert.ok(styles.includes(selector), `missing ${selector}`);
+  }
+});
+
 test('no Sitejet leftovers or third-party scripts', () => {
   for (const file of html) {
     const text = readFileSync(file, 'utf8');
