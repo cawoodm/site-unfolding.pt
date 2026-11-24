@@ -158,3 +158,40 @@ test('the unused-content check stays per language and ignores fallback content',
   assert.throws(() => renderPage('##pagetitle##', { ...de, strings: { extra: 'y' }, fallback }), /de: content not used by the template: extra/);
   assert.equal(renderPage('##pagetitle##', { ...de, fallback }), 'Fish &amp; Chips');
 });
+
+const on = { ...base, markers: true };
+
+test('markers are off by default', () => {
+  assert.equal(renderPage('##HERO.md##|##t##', { ...base, blocks: { 'HERO.md': 'x' }, strings: { t: 'y' } }), '<p>x</p>|y');
+});
+
+test('markers wrap a block and an :items block', () => {
+  assert.equal(renderPage('##HERO.md##', { ...on, blocks: { 'HERO.md': 'x' } }), '<!--cms:HERO.md--><p>x</p><!--/cms-->');
+  assert.equal(
+    renderPage('<ol>##S.md:items##</ol>', { ...on, blocks: { 'S.md': '### A\n\nOne' } }),
+    '<ol><!--cms:S.md:items--><li><div><h3>A</h3>\n<p>One</p></div></li><!--/cms--></ol>',
+  );
+});
+
+test('markers wrap a string in text context only', () => {
+  const strings = { t: 'A & B' };
+  assert.equal(renderPage('<p>##t##</p>', { ...on, strings, blocks: {} }), '<p><!--cms:t-->A &amp; B<!--/cms--></p>');
+  assert.equal(renderPage('<img alt="##t##" title=\'##t##\'><p>##t##</p>', { ...on, strings }), '<img alt="A &amp; B" title=\'A &amp; B\'><p><!--cms:t-->A &amp; B<!--/cms--></p>');
+});
+
+test('markers skip strings in <title>, <textarea>, <script> and <style>', () => {
+  const strings = { t: 'x' };
+  for (const tag of ['title', 'textarea', 'script', 'style']) {
+    assert.equal(renderPage(`<${tag}>##t##</${tag}>`, { ...on, strings }), `<${tag}>x</${tag}>`, tag);
+  }
+  assert.equal(renderPage('<title>a</title><p>##t##</p>', { ...on, strings }), '<title>a</title><p><!--cms:t-->x<!--/cms--></p>');
+});
+
+test('markers never wrap built-ins', () => {
+  assert.doesNotMatch(renderPage('##LANG##|##HEAD_LINKS##|##LANG_SWITCH##', on), /cms/);
+});
+
+test('a block from the English fallback is still marked, without a language in the key', () => {
+  assert.equal(renderPage('##ABOUT.md##', { ...de, markers: true, fallback }), '<!--cms:ABOUT.md--><p>English <em>about</em></p><!--/cms-->');
+  assert.equal(renderPage('<p>##pagetitle##</p>', { ...de, markers: true, fallback }), '<p><!--cms:pagetitle-->Fish &amp; Chips<!--/cms--></p>');
+});

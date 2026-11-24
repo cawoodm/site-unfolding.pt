@@ -9,7 +9,8 @@ The site is one page per language, built from one template and one content folde
 | `www/css/site.css` | Tailwind v4 entry point, fonts, theme, styles for rendered Markdown |
 | `www/js/main.js` | Menu, active section, legal dialogs |
 | `www/images/`, `www/fonts/` | Assets, hashed by Vite |
-| `www/public/` | Copied as is (`sitemap.xml`, `robots.txt`) |
+| `www/public/` | Copied as is (`sitemap.xml`, `robots.txt`, `cms.js`) |
+| `www/public/cms.js` | The cmsfree browser editor, copied from the cmsfree repo (`dist/cms.js`). Do not edit it here |
 | `scripts/build-content.mjs` | Renderer: fills the placeholders for one language |
 
 ## Production build
@@ -74,6 +75,21 @@ Any error in the renderer is thrown inside the plugin and fails the build.
 | `##menu_home##` | the HTML-escaped value of `menu_home` in `content/<lang>/site.yml` (lowercase is reserved for `site.yml`) |
 | `##LANG##`, `##HEAD_LINKS##`, `##LANG_SWITCH##` | built-ins: language code; canonical, `hreflang` and `og:url` tags; EN \| DE switch |
 
+### Edit markers
+
+`renderLanguage()` also wraps editable output in HTML comments, so the cmsfree editor (`cms.js`, loaded by the inline loader at the end of `www/index.html` only with `?edit` or in a browser that has edited before) can find it on the live page:
+
+```html
+<!--cms:WELCOME.md-->…rendered HTML…<!--/cms-->
+<!--cms:SERVICES.md:items--><li>…</li><!--/cms-->
+<!--cms:menu_home-->Home<!--/cms-->
+```
+
+- Blocks are always wrapped, also when they come from the English fallback. The key has no language.
+- Strings are wrapped only in text context: no marker inside a tag (attribute values) or in the raw text of `<title>`, `<textarea>`, `<script>`, `<style>`.
+- Built-ins (`##LANG##`, `##HEAD_LINKS##`, `##LANG_SWITCH##`) are never wrapped.
+- `renderPage()` only adds markers with the option `markers: true` (default `false`); `renderLanguage()` sets it.
+
 If a placeholder has no content in `content/<lang>/`, the renderer uses the same file or key from `content/en/` (`LANGUAGES[0]`) and `renderLanguage()` logs one warning per language, e.g. `de: using en content for ##pagetitle##, ##ABOUT.md##`. Built-ins and English itself have no fallback. Fallback content is not reported as unused; the unused-content check still runs per language on that language's own files and keys.
 
 The build fails when:
@@ -107,8 +123,8 @@ flowchart LR
 
 `npm test` runs `vite build`, then:
 
-- `tests/site.test.js` checks the built `dist/`: exactly three pages, every local reference resolves, no root-absolute URLs, Tailwind generated the template's utilities, both dialogs have content, no `##placeholder##` is left, no Sitejet or third-party scripts.
-- `tests/content.test.js` checks the renderer: placeholder rules, escaping, `:items`, built-ins and every build error above.
+- `tests/site.test.js` checks the built `dist/`: exactly three pages, every local reference resolves, no root-absolute URLs, Tailwind generated the template's utilities, both dialogs have content, no `##placeholder##` is left, no Sitejet or third-party scripts, edit markers and the cms.js loader are present (and no plain cms.js script tag).
+- `tests/content.test.js` checks the renderer: placeholder rules, escaping, `:items`, built-ins, edit markers and every build error above.
 
 ```mermaid
 flowchart LR

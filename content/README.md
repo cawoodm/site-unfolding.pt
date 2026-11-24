@@ -26,3 +26,11 @@ Markdown basics:
 Change a file on GitHub (pencil icon → "Commit changes" to `main`) and the site rebuilds and publishes within a few minutes. If the build fails, the old site stays online and the failed run under the repository's *Actions* tab shows why.
 
 Do not add new files here: the page template decides which blocks exist. English is the master: every block and key must exist in `en/`. If a German text is missing, the English text is used and the build log shows a warning.
+
+## Edit in the browser
+
+You can also edit the text on the live page. Add `?edit` to the end of the address, e.g. https://cawoodm.github.io/site-unfolding.pt/en/?edit.
+
+- Your edits are kept in this browser until you click **Publish**.
+- Publish commits the changes to GitHub. The site rebuilds and goes live within a few minutes.
+- You need a GitHub token to publish. Set it in the ⚙ settings, or open the setup link the site owner sends you: it fills in all settings at once. Keep that link private, because it contains the token.

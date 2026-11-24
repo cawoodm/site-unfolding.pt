@@ -5,6 +5,9 @@
 //   ##NAME.md:items##  the .md file split at "### " headings, one <li> per section
 //   ##lower_key##      the HTML-escaped string <lower_key> from content/<lang>/site.yml
 //   ##UPPER_NAME##     built-ins, computed per language: LANG, HEAD_LINKS, LANG_SWITCH
+// With markers on (renderLanguage), editable output is wrapped for the cmsfree editor (cms.js):
+//   <!--cms:NAME.md-->…<!--/cms-->, <!--cms:NAME.md:items-->…<!--/cms-->, <!--cms:lower_key-->…<!--/cms-->
+// Strings get no marker inside a tag (attribute values) or in <title>, <textarea>, <script>, <style>. Built-ins never do.
 // Vite calls renderLanguage() per request in dev and once per language after the build.
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -60,7 +63,8 @@ export function renderItems(markdown) {
 
 // fallback: { lang, blocks, strings } is used for content missing in this language (never for the fallback language itself).
 // onFallback(list) is called once with the placeholders that used it, e.g. ["##pagetitle##"].
-export function renderPage(template, { lang, languages, blocks, strings, fallback, onFallback }) {
+// markers: true wraps blocks and text-context strings in <!--cms:KEY-->…<!--/cms--> (default false).
+export function renderPage(template, { lang, languages, blocks, strings, fallback, onFallback, markers = false }) {
   const builtins = {
     LANG: () => lang,
     HEAD_LINKS: () => [
@@ -81,7 +85,14 @@ export function renderPage(template, { lang, languages, blocks, strings, fallbac
   const fallbacks = [];
   const fb = fallback && fallback.lang !== lang ? fallback : null;
 
-  const html = template.replace(/##([A-Za-z0-9_.-]+?)(?::(items))?##/g, (_, key, mode) => {
+  const wrap = (name, content) => (markers ? `<!--cms:${name}-->${content}<!--/cms-->` : content);
+  // True when the placeholder at `offset` sits inside a tag or in the raw text of <title>, <textarea>, <script> or <style>.
+  const noMarkerHere = (offset) => {
+    const before = template.slice(0, offset);
+    return before.lastIndexOf('<') > before.lastIndexOf('>') || /<(title|textarea|script|style)\b[^>]*>[^<]*$/i.test(before);
+  };
+
+  const html = template.replace(/##([A-Za-z0-9_.-]+?)(?::(items))?##/g, (_, key, mode, offset) => {
     if (key.endsWith('.md')) {
       let source = blocks;
       if (key in blocks) usedBlocks.add(key);
@@ -91,7 +102,7 @@ export function renderPage(template, { lang, languages, blocks, strings, fallbac
       } else {
         throw new Error(`${lang}: no content for placeholder ##${key}## (expected file content/${lang}/${key}${fb ? ` and content/${fb.lang}/${key}` : ''}; the name is case-sensitive)`);
       }
-      return mode === 'items' ? renderItems(source[key]) : marked.parse(source[key]).trim();
+      return wrap(key + (mode ? ':' + mode : ''), mode === 'items' ? renderItems(source[key]) : marked.parse(source[key]).trim());
     }
     if (mode) throw new Error(`${lang}: ##${key}:${mode}## is only allowed on a .md placeholder`);
     if (/^[a-z0-9_]+$/.test(key)) {
@@ -103,7 +114,7 @@ export function renderPage(template, { lang, languages, blocks, strings, fallbac
       } else {
         throw new Error(`${lang}: no content for placeholder ##${key}## (expected key "${key}" in content/${lang}/site.yml${fb ? ` and content/${fb.lang}/site.yml` : ''})`);
       }
-      return escapeHtml(source[key]);
+      return noMarkerHere(offset) ? escapeHtml(source[key]) : wrap(key, escapeHtml(source[key]));
     }
     if (/^[A-Z0-9_]+$/.test(key) && builtins[key]) return builtins[key]();
     throw new Error(`${lang}: unknown placeholder ##${key}## (use ##NAME.md## for a file, ##lowercase_key## for site.yml, or a built-in: ${Object.keys(builtins).join(', ')})`);
@@ -148,5 +159,5 @@ export function renderLanguage(templateHtml, lang) {
   const onFallback = (used) => {
     if (used.length) console.warn(`${lang}: using ${fallbackLang} content for ${used.join(', ')}`);
   };
-  return renderPage(templateHtml, { lang, languages: LANGUAGES, ...loadLanguage(join(CONTENT_DIR, lang)), fallback, onFallback });
+  return renderPage(templateHtml, { lang, languages: LANGUAGES, ...loadLanguage(join(CONTENT_DIR, lang)), fallback, onFallback, markers: true });
 }

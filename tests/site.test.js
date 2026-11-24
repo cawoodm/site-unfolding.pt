@@ -97,3 +97,11 @@ test('each language page has the legal notice and privacy dialogs with content',
 test('no placeholder is left in any built page', () => {
   for (const file of html) assert.doesNotMatch(readFileSync(file, 'utf8'), /##[^#\s]+##/, relative(DIST, file));
 });
+
+test('language pages carry edit markers and load the editor script', () => {
+  const text = readFileSync(join(DIST, 'en', 'index.html'), 'utf8');
+  assert.match(text, /<!--cms:[^>]+-->/);
+  // cms.js is loaded on demand by the inline loader, never by a plain script tag.
+  assert.match(text, /cms\.src = '\.\.\/cms\.js'/);
+  assert.doesNotMatch(text, /<script src="\.\.\/cms\.js">/);
+});

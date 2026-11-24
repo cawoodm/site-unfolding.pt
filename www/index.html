@@ -129,5 +129,15 @@
   </dialog>
 
   <script type="module" src="js/main.js"></script>
+  <!-- cmsfree editor: loaded only with ?edit or in a browser that has edited before, so visitors never download it -->
+  <script>
+    try {
+      if (new URLSearchParams(location.search.toLowerCase()).has('edit') || localStorage.getItem('cmsfree:editor') === '1') {
+        const cms = document.createElement('script');
+        cms.src = '../cms.js';
+        document.body.append(cms);
+      }
+    } catch {}
+  </script>
 </body>
 </html>
