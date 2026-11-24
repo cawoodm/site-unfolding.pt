@@ -1,4 +1,4 @@
-# unfolding1
+# unfolding
 
 /ʌnˈfəʊldɪŋ/ · *noun*
 
