@@ -56,7 +56,15 @@ test('every local reference resolves', () => {
   assert.deepEqual(broken, []);
 });
 
-test('internal links are root-relative, so previews work on any host', () => {
+test('local references are relative, so the site works from the root or a subfolder', () => {
+  const rooted = [];
+  for (const file of [...html, ...css]) {
+    for (const ref of localRefs(readFileSync(file, 'utf8'))) if (ref.startsWith('/')) rooted.push(`${relative(DIST, file)} -> ${ref}`);
+  }
+  assert.deepEqual(rooted, []);
+});
+
+test('internal links are not absolute, so previews work on any host', () => {
   const absolute = [];
   for (const file of html) {
     for (const m of readFileSync(file, 'utf8').matchAll(/<(?:a|img|script|link)\b[^>]*\b(?:href|src)="(https:\/\/unfolding\.pt[^"]*)"[^>]*>/g)) {
@@ -122,8 +130,8 @@ test('every language page has the expected markers, language and hreflang links'
 test('the languages differ and the language menu links to the other one', () => {
   const en = readFileSync(join(DIST, 'en', 'index.html'), 'utf8');
   const de = readFileSync(join(DIST, 'de', 'index.html'), 'utf8');
-  assert.match(en, /<a href="\/de\/" hreflang="de" lang="de"[^>]*>Deutsch<\/a>/);
-  assert.match(de, /<a href="\/en\/" hreflang="en" lang="en"[^>]*>English<\/a>/);
+  assert.match(en, /<a href="\.\.\/de\/" hreflang="de" lang="de"[^>]*>Deutsch<\/a>/);
+  assert.match(de, /<a href="\.\.\/en\/" hreflang="en" lang="en"[^>]*>English<\/a>/);
   assert.notEqual(en.match(/<title>[^<]*/)[0], de.match(/<title>[^<]*/)[0]);
 });
 
@@ -140,8 +148,8 @@ test('robots.txt and sitemap.xml are published', () => {
 
 test('language pages load the editor script on demand only', () => {
   const text = readFileSync(join(DIST, 'en', 'index.html'), 'utf8');
-  // cms.js is loaded by the inline loader, never by a plain script tag.
-  assert.match(text, /cms\.src = '\\?\/cms\.js'/);
+  // cms.js is loaded by the inline loader, never by a plain script tag; the path is relative to the page (/en/ -> ../cms.js).
+  assert.match(text, /cms\.src = '\.\.\\?\/cms\.js'/);
   assert.doesNotMatch(text, /<script src="[^"]*cms\.js">/);
   assert.ok(existsSync(join(DIST, 'cms.js')), 'cms.js is published');
 });

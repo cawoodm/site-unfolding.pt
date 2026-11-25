@@ -1,4 +1,5 @@
 baseURL = "https://unfolding.pt/"
+relativeURLs = true
 title = "Unfolding Portugal"
 defaultContentLanguage = "en"
 defaultContentLanguageInSubdir = true

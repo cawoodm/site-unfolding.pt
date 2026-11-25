@@ -36,7 +36,7 @@ npm test           # hugo, then node --test tests/site.test.js (needs hugo exten
 - `assets/css/site.css`: Tailwind import (`@source "../../layouts"`), `@font-face` rules (`../fonts/` = `static/fonts/`), theme tokens, `.legal`, `.legal-dialog`, hero `.rise`, `.md-*` styles. Processed by `css.TailwindCSS` (needs npm `tailwindcss` + `@tailwindcss/cli`) and fingerprinted.
 - `assets/js/main.js`: mobile menu, language menu, `aria-current` on the visible section, legal dialogs. `js.Build` + fingerprint.
 - `static/`: `images/`, `fonts/`, `robots.txt`, `sitemap.xml` (static, Hugo's sitemap is disabled), `cms.js`. Copied as is.
-- Internal links use `relURL` (root-relative: `/en/`, `/images/...`); canonical and `hreflang` use the absolute `baseURL` `https://unfolding.pt/`. The old sub-path preview (`cawoodm.github.io/site-unfolding.pt/`) no longer works. `npm test` checks that every reference resolves.
+- `relativeURLs = true` in `hugo.toml`: Hugo rewrites every local `href`/`src` to a page-relative path (`../css/…`, `../de/`), so the site works from the domain root and from a subfolder such as the preview `cawoodm.github.io/site-unfolding.pt/`. URLs inside scripts are not rewritten: the cms.js loader computes its own `../`. Canonical and `hreflang` stay absolute (`https://unfolding.pt/`). `npm test` checks that every reference resolves and none starts with `/`.
 
 ## Deployment
 

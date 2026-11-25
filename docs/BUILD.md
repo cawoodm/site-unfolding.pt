@@ -39,7 +39,7 @@ A block or string missing in a language comes from the default language (English
 
 i18n keys must not be `description`, `other`, `one`, `two`, `few`, `many`, `zero`, `id`, `hash`, `translation`: go-i18n then reads the whole file as one message and every lookup is empty. That is why the meta description key is `meta_description`.
 
-Assets: CSS and JS go through Hugo pipes (`css.TailwindCSS`, `js.Build`, `fingerprint`), images and fonts are static. Links use `relURL` (root-relative, e.g. `/en/`), canonical and `hreflang` links use `.Permalink` (`https://unfolding.pt/...`). The editor loader adds `/cms.js` only with `?edit` or in a browser that has edited before.
+Assets: CSS and JS go through Hugo pipes (`css.TailwindCSS`, `js.Build`, `fingerprint`), images and fonts are static. With `relativeURLs = true`, all local links and assets are page-relative (e.g. `../de/`), so the site works from the root or a subfolder; canonical and `hreflang` links use `.Permalink` (`https://unfolding.pt/...`). The editor loader adds `../cms.js` only with `?edit` or in a browser that has edited before.
 
 ## Output
 

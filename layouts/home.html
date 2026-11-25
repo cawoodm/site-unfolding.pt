@@ -136,11 +136,12 @@
 
   {{ with resources.Get "js/main.js" | js.Build (dict "minify" true) | fingerprint }}<script type="module" src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}"></script>{{ end }}
   <!-- cmsfree editor: loaded only with ?edit or in a browser that has edited before, so visitors never download it -->
+  {{- /* relativeURLs does not rewrite URLs inside scripts: one "../" per folder level of this page (/en/ -> ../cms.js). */}}
   <script>
     try {
       if (new URLSearchParams(location.search.toLowerCase()).has('edit') || localStorage.getItem('cmsfree:editor') === '1') {
         const cms = document.createElement('script');
-        cms.src = '{{ "cms.js" | relURL | safeJS }}';
+        cms.src = '{{ strings.Repeat (len (findRE `/` (strings.TrimPrefix `/` .RelPermalink))) `../` | safeJS }}cms.js';
         document.body.append(cms);
       }
     } catch {}
