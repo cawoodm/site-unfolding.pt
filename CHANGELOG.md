@@ -3,7 +3,7 @@
 ## 3.2.0 (2026-11-25)
 
 - **Hugo's default language layout.** All blocks are in `content/blocks/`: `NAME.md` English, `NAME.de.md` German. No per-language `contentDir` in `hugo.toml`. The pages are unchanged.
-- cmsfree editor 4.0.0: edits on `/de/` go to `NAME.de.md`; `cms.js` starts with a version comment.
+- cmsfree editor 4.2.0: edits on `/de/` go to `NAME.de.md`; ↓ Pull and ↑ Push buttons with a notice when GitHub has newer changes; the token can be copied from the settings; pulls no longer get a cached old state.
 
 ## 3.1.0 (2026-11-25)
 
