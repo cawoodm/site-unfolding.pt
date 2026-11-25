@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.3.0 (2026-11-25)
+
+- cmsfree editor 4.3.0: the GitHub settings are checked on GitHub (wrong repo, branch or site folder is marked red), with a link to the repo; a pull without `hugo.toml` stops with an error instead of keeping old content.
+
 ## 3.2.0 (2026-11-25)
 
 - **Hugo's default language layout.** All blocks are in `content/blocks/`: `NAME.md` English, `NAME.de.md` German. No per-language `contentDir` in `hugo.toml`. The pages are unchanged.
