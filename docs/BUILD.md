@@ -35,7 +35,7 @@ Use `hugo` without `--quiet` (it hides errors) and without `--minify` (it strips
 | `{{ partial "cms-text.html" "menu_home" }}` | the string `menu_home` from `i18n/<lang>.yaml`, wrapped in a marker (text context only) |
 | `{{ T "title" }}` | the same string without a marker (attributes, `<title>`) |
 
-A block or string missing in a language comes from the default language (English). A missing block or string fails the build (the partials call `errorf`; `T` in attributes only warns, which `npm test` catches).
+Blocks have no fallback: a block missing in a language fails the build and names the file, e.g. `content/de/blocks/HERO.md`. A string missing in a language comes from the default language (English), because Hugo's `T` does that. A string missing everywhere fails the build (the partials call `errorf`; `T` in attributes only warns, which `npm test` catches).
 
 i18n keys must not be `description`, `other`, `one`, `two`, `few`, `many`, `zero`, `id`, `hash`, `translation`: go-i18n then reads the whole file as one message and every lookup is empty. That is why the meta description key is `meta_description`.
 
