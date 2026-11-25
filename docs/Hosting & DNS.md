@@ -9,6 +9,12 @@ ns2.ptservidor.net
 ns3.ptservidor.net
 => 202.61.233.177
 
+New A Record:
+185.199.108.153
+185.199.109.153
+185.199.110.153
+185.199.111.153
+
 # Hosting
 https://www.netcup.com/
 Admin: https://www.customercontrolpanel.de/
