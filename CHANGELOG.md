@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.2.0 (2026-11-25)
+
+- **Hugo's default language layout.** All blocks are in `content/blocks/`: `NAME.md` English, `NAME.de.md` German. No per-language `contentDir` in `hugo.toml`. The pages are unchanged.
+- cmsfree editor 4.0.0: edits on `/de/` go to `NAME.de.md`; `cms.js` starts with a version comment.
+
 ## 3.1.0 (2026-11-25)
 
 ### Fixed

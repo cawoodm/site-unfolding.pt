@@ -9,7 +9,7 @@ The site is a plain [Hugo](https://gohugo.io) site (extended edition, 0.147.8): 
 | `layouts/alias.html` | The root redirect page (`/` goes to `en/` or `de/` by browser language) |
 | `layouts/_partials/cms-*.html` | Partials that output blocks, `:items` lists and strings with the cmsfree edit markers. Shipped by cmsfree; do not edit |
 | `layouts/_markup/render-link.html` | Link render hook: keeps `tel:` links (Hugo's built-in hook turns them into `#ZgotmplZ`) |
-| `content/<lang>/blocks/*.md` | Markdown blocks (`HERO.md`, `WELCOME.md`, ...), no front matter |
+| `content/blocks/*.md` | Markdown blocks, no front matter: `HERO.md` (English), `HERO.de.md` (German). Hugo default layout: translation by file name |
 | `i18n/<lang>.yaml` | Short strings, one `key: text` line each. German falls back to English per key |
 | `assets/css/site.css` | Tailwind v4 entry point, fonts, theme, styles for rendered Markdown |
 | `assets/js/main.js` | Menu, active section, legal dialogs |
@@ -30,12 +30,12 @@ Use `hugo` without `--quiet` (it hides errors) and without `--minify` (it strips
 
 | In `layouts/home.html` | Output |
 |---|---|
-| `{{ partial "cms-block.html" "WELCOME.md" }}` | `content/<lang>/blocks/WELCOME.md` as HTML, wrapped in `<!--cms:WELCOME.md-->...<!--/cms-->` |
+| `{{ partial "cms-block.html" "WELCOME.md" }}` | `content/blocks/WELCOME.md` (or `WELCOME.de.md` on `/de/`) as HTML, wrapped in `<!--cms:WELCOME.md-->...<!--/cms-->` |
 | `{{ partial "cms-items.html" "SERVICES.md" }}` | the file split at `### ` headings, one `<li><div>...</div></li>` each |
 | `{{ partial "cms-text.html" "menu_home" }}` | the string `menu_home` from `i18n/<lang>.yaml`, wrapped in a marker (text context only) |
 | `{{ T "title" }}` | the same string without a marker (attributes, `<title>`) |
 
-Blocks have no fallback: a block missing in a language fails the build and names the file, e.g. `content/de/blocks/HERO.md`. A string missing in a language comes from the default language (English), because Hugo's `T` does that. A string missing everywhere fails the build (the partials call `errorf`; `T` in attributes only warns, which `npm test` catches).
+Blocks have no fallback: a block missing in a language fails the build and names the file, e.g. `content/blocks/HERO.de.md`. A string missing in a language comes from the default language (English), because Hugo's `T` does that. A string missing everywhere fails the build (the partials call `errorf`; `T` in attributes only warns, which `npm test` catches).
 
 i18n keys must not be `description`, `other`, `one`, `two`, `few`, `many`, `zero`, `id`, `hash`, `translation`: go-i18n then reads the whole file as one message and every lookup is empty. That is why the meta description key is `meta_description`.
 

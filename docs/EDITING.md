@@ -1,6 +1,6 @@
 # Editing the website text
 
-Each language has a folder in `content/`: `en/` (English) and `de/` (German). Blocks are Markdown files in `content/<lang>/blocks/`; short texts are in `i18n/<lang>.yaml`. A block or key missing in German comes from English.
+Blocks are Markdown files in `content/blocks/`: `HERO.md` is English, `HERO.de.md` is the same block in German. Short texts are in `i18n/en.yaml` and `i18n/de.yaml`. Every block needs both files; a short text missing in German comes from English.
 
 - `HERO.md`, `WELCOME.md`, `SERVICES.md`, `JOURNEY.md`, `ABOUT.md`, `FOOTER-CONTACT.md` hold the text blocks of the page.
 - `LEGAL-NOTICE.md` (Impressum in German) and `PRIVACY.md` (Datenschutz) hold the legal texts. They open as pop-up windows on the page.

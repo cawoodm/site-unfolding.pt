@@ -8,12 +8,10 @@ disableHugoGeneratorInject = true
 disableKinds = ["section", "taxonomy", "term", "rss", "sitemap", "404"]
 
 [languages.en]
-contentDir = "content/en"
 languageName = "English"
 weight = 1
 
 [languages.de]
-contentDir = "content/de"
 languageName = "Deutsch"
 weight = 2
 
