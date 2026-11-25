@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.4.0 (2026-11-25)
+
+- cmsfree editor 5.0.0: edits always live in the browser (no local-folder mode any more); the settings dialog can download the site files as a .zip.
+
 ## 3.3.0 (2026-11-25)
 
 - cmsfree editor 4.3.0: the GitHub settings are checked on GitHub (wrong repo, branch or site folder is marked red), with a link to the repo; a pull without `hugo.toml` stops with an error instead of keeping old content.
