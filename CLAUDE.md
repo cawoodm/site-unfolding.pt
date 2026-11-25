@@ -40,6 +40,6 @@ npm test           # hugo, then node --test tests/site.test.js (needs hugo exten
 
 ## Deployment
 
-`.github/workflows/pages.yml` installs Hugo extended 0.147.8 and Node, runs `npm ci` and `npm test`, then deploys `public/` to GitHub Pages on every push to `main` that touches `content/`, `i18n/`, `layouts/`, `assets/`, `static/`, `hugo.toml`, `tests/` or package files (also runnable manually). It has a `build` job that uploads the Pages artifact and a separate `deploy` job; keep them split, because `deploy-pages` cannot find an artifact uploaded in the same job. The plan moves the domain `unfolding.pt` to GitHub Pages at the end (`static/CNAME` plus DNS change).
+`.github/workflows/pages.yml` installs Hugo extended 0.147.8 and Node, runs `npm ci`, builds with `npm run build` and tests with `node --test tests/site.test.js` (separate steps), then deploys `public/` to GitHub Pages on every push to `main` that touches `content/`, `i18n/`, `layouts/`, `assets/`, `static/`, `hugo.toml`, `tests/` or package files (also runnable manually). It has a `build` job that uploads the Pages artifact and a separate `deploy` job; keep them split, because `deploy-pages` cannot find an artifact uploaded in the same job. The plan moves the domain `unfolding.pt` to GitHub Pages at the end (`static/CNAME` plus DNS change).
 
 Commits use English messages and no AI attribution.
